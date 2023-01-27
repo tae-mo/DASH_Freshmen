@@ -12,3 +12,6 @@ git add .
 git commit -m "<WHAT YOU DID>" # ex) git commit -m "resnet from scratch"
 git push origin <YOUR BRANCH NAME> # ex) git push origin taejune
 ```
+
+### NOTE:
+PUSH IN YOUR OWN BRANCH (not main branch)
