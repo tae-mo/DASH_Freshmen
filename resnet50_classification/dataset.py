@@ -7,7 +7,7 @@ def match_image(root):
     images = []
     a = os.listdir(root)
 
-    if '.DS_Store' in a: # 예외처리
+    if '.DS_Store' in a: #예외처리
         a.remove('.DS_Store')
 
     for i, label in enumerate(a):
