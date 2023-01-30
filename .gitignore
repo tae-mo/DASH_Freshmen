@@ -1,0 +1,9 @@
+__pycahe__/
+
+.ipynb_checkpoints/
+*tar
+
+ddp_test.py
+DDP_TEST.py
+
+*.pyc
