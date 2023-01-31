@@ -8,6 +8,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group #initialize
 
+from tqdm import tqdm
+
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import ImageFolder
 import argparse
@@ -18,18 +20,19 @@ import torchvision.transforms as tr
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 
+
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-def ddp_setup(rank, world_size):
+def setup(rank, world_size):
     #world size == total num of processes in a group
     #rank == identifier assigned to each process
 
     os.environ["MASTER_ADDR"] = "115.145.134.134"
     os.environ["MASTER_PORT"] = "22"
 
-    init_process_group(backend="gloo",rank=rank, world_size=world_size)
+    init_process_group(backend="nccl",rank=rank, world_size=world_size)
 
 def cleanup():
     destroy_process_group()
@@ -38,10 +41,8 @@ def cleanup():
 #gpu_id = '2'
 #os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) 
 
-
-
-from PIL import Image
-import matplotlib.pyplot as plt
+# from PIL import Image
+# import matplotlib.pyplot as plt
 
 # import matplotlib.image as mpimg
 # import numpy as np
@@ -51,7 +52,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='argparse')
 
-    # dataset, model, batch size, epoch, learning rate
+# dataset, model, batch size, epoch, learning rate ...
 parser.add_argument('--train', '-tr', required=False, default='/home/data/Imagenet/train', help='Root of Trainset')
 parser.add_argument('--test', '-ts', required=False, default='/home/data/Imagenet/validation', help='Root of Testset')
 parser.add_argument('--model', '-m', required=False, default='resnet50', help='Model')
@@ -62,34 +63,61 @@ parser.add_argument('--workers', '-w', required=False, default=4, help='Num of d
 
 use_cuda = torch.cuda.is_available()
 
-
-def main():
-
-
-    if torch.cuda.is_available():
-            ngpus_per_node = torch.cuda.device_count()
-            print(ngpus_per_node)
+if torch.cuda.is_available():
+    ngpus_per_node = torch.cuda.device_count()
+    print(ngpus_per_node)
 
     print("GPU device " , use_cuda) 
 
     device = torch.device('cuda' if use_cuda else 'cpu')
 
+def train_fn(train_loader, model, optimizer, loss_fn, scheduler):
+    loop = tqdm(train_loader, leave=True)
+    mean_loss = []
+
+    for batch_idx, (x, y) in enumerate(loop):
+        x, y = x.to(device), y.to(device)
+        out = model(x)
+        loss = loss_fn(out, y)
+        mean_loss.append(loss.item())
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # update progress bar
+        loop.set_postfix(loss=loss.item())
+
+    scheduler.step(loss)  # Update the weight and bias, epoch 마다 해줌
+    print(f"Mean loss was {sum(mean_loss)/len(mean_loss)}")
+
+def main():
+    
 
     args = parser.parse_args()
 
-        # 입력받은 인자값 출력
-    print(args.train)
-    print(args.test)
-    print(args.model)
-    print(args.batch)
-    print(args.epoch)
-    print(args.lr)
+    # 입력받은 인자값 출력
+    # print(args.train)
+    # print(args.test)
+    # print(args.model)
+    # print(args.batch)
+    # print(args.epoch)
+    # print(args.lr)
 
     train_root = args.train
     test_root = args.test
+    EPOCHS = args.epoch
 
     if args.model == 'resnet50':
         model = MD.ResNet50()
+
+    print(f"Running basic DDP example on rank {rank}.")
+    setup(rank, world_size)
+
+    # 모델을 생성하고 순위 아이디가 있는 GPU로 전달
+    model = model().to(rank)
+    ddp_model = DDP(model, device_ids=[rank])
+
+
 
     # Data transforms (normalization & data augmentation)
     stats = ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
@@ -110,6 +138,12 @@ def main():
     #loss 향상하지 않으면 lr 을 factor배로 감소(0.5), 3epoch동안, threhold란 중요변화에만 초점 맞추기 위한 임계값
 
     #ddp_model = DDP(model, device_ids=["gpu id"])
+
+    for epoch in range(EPOCHS):
+        train_fn(trainloader, model, optimizer, criterion, scheduler)
+
+    cleanup()
+
 
     
 
