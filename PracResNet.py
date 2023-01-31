@@ -110,7 +110,7 @@ class Bottleneck(nn.Module):
         
         self.conv1 = conv1x1(inplanes, width) # 1x1 convolution
         self.bn1 = norm_layer(width) # batch_norm
-        self.conv2 = conv3x3(width, stride, groups, dilation) # 3x3 convolution -> downsample
+        self.conv2 = conv3x3(width, width, stride, groups, dilation) # 3x3 convolution -> downsample
         self.bn2 = norm_layer(width) # batch_norm
         self.conv3 = conv1x1(width, planes * self.expansion) #1 x1 convolution -> 채널 수 복구
         self.bn3 = norm_layer(planes * self.expansion) # batch_norm
@@ -236,7 +236,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
     
     
-    def _forward_impl(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -252,11 +252,3 @@ class ResNet(nn.Module):
         x = self.fc(x)
         
         return x
-    
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
-    
-device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
-print('Now Device: ', device)
-model = ResNet(Bottleneck, [3,4,6,3],).to(device)
-print('My model:\n','#'*100,"\n",model)
