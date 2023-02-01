@@ -86,6 +86,8 @@ class Trainer:
         self.save_every = save_every
         self.epochs_run = 0
 
+        self.cost = AverageMeter()
+
         self.snapshot_path = snapshot_path
         if os.path.exists(snapshot_path):
             print("Loading snapshot")
@@ -98,7 +100,7 @@ class Trainer:
     def _run_batch(self, source, targets):
         self.optimizer.zero_grad()
         output = self.model(source)
-        loss = F.cross_entropy(output, targets)
+        loss = F.cross_entropy(output, targets, reduction='mean')
         loss.backward()
         self.optimizer.step()
         return loss
@@ -114,18 +116,24 @@ class Trainer:
         b_sz = len(next(iter(self.train_loader))[0])
         print(f"[GPU{self.gpu_id}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_loader)}")
         self.train_loader.sampler.set_epoch(epoch)
+
         train_bar = tqdm(self.train_loader)
         for source, targets in train_bar:
             source = source.to(self.gpu_id)
             targets = targets.to(self.gpu_id)
-            batch_size = len(source)
+
+            num_data = len(source)
 
             loss = self._run_batch(source, targets)
+
+            self.cost.update(loss, num_data)
+
             train_bar.set_description(desc = '[%d/%d]   cost: %.9f' % (
-                epoch+1, self.epochs_run, loss/batch_size,
+                epoch+1, self.epochs_run, loss/num_data,
             ))
-
-
+        print(f'Epoch {epoch}, cost : {self.cost.avg}')
+        
+    # 체크포인트 저장
     def _save_snapshot(self, epoch):
         snapshot = {}
         snapshot["MODEL_STATE"] = self.model.module.state_dict()
@@ -133,7 +141,7 @@ class Trainer:
         torch.save(snapshot, self.snapshot_path)
         print(f"Epoch {epoch} | Training snapshot saved at", self.snapshot_path)
 
-
+    # 검증 수행
     def _run_validation(self):
         self.validator.validate()
 
@@ -204,3 +212,8 @@ if __name__ == "__main__":
 
 
 # CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=gpu ddp_train.py --epochs 20 --save_every 2 --batch_size 64
+
+
+
+
+
