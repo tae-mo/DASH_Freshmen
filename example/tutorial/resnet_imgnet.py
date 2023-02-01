@@ -44,7 +44,7 @@ class Trainer:
         self.losses = []
         
         self.acc_per_batch = 0
-        self.acc_per_epoch = 0
+        self.temp_acc = 0
         self.acces = []
         
         self.model = model.to(gpu_id)
@@ -76,7 +76,7 @@ class Trainer:
             "MODEL_STATE": self.model.module.state_dict(),
             "EPOCHS_RUN": epoch,
         }
-        PATH = "checkpoint_" + epoch + ".pt"
+        PATH = "result/" + self.snapshot_path
         torch.save(snapshot, self.snapshot_path)
         print(f"Epoch {epoch} | Training snapshot saved at {self.snapshot_path}")
         # print(f"Epoch {epoch} | Training checkpoint saved at {PATH}")
@@ -96,12 +96,13 @@ class Trainer:
         self.optimizer.step()
         
         preds = output.argmax(dim=1)
-        correct += preds.eq(targets).sum()
-        self.acces.append(correct)
+        self.temp_acc += preds.eq(targets).sum()
+        self.acces.append(self.temp_acc)
     #
 
     # 222222222222222222222222222222222222222222
     def _run_epoch(self, epoch):
+        self.temp_acc = 0
         batch_size = len(next(iter(self.train_data))[0])
         self.train_data.sampler.set_epoch(epoch)
         
@@ -119,8 +120,9 @@ class Trainer:
             self.loss_per_batch = (sum(self.losses)/len(self.losses))
             self.acc_per_batch  = (sum(self.acces)/len(self.acces))
             
+            acc = 100. * self.temp_acc / len(self.train_data.dataset)
             tq.set_postfix( Loss ='{:.5f} per batch'.format(self.loss_per_batch), 
-                            Acc  ='{:.5f} per batch'.format(self.acc_per_batch))
+                            Acc  ='{:.5f} per batch'.format(acc), temp ='{:.2f}'.format(self.temp_acc))
             tq.update(batch_size) # can not get it...
         tq.close()
         
@@ -129,7 +131,13 @@ class Trainer:
 
     # 333333333333333333333333333333333333333333333
     def train(self, max_epochs: int):
-        logger = get_logger(path)
+        
+        if not os.path.exists("/home/jiwon/DASH_Freshmen/example/tutorial/result"):
+            os.mkdir("/home/jiwon/DASH_Freshmen/example/tutorial/result")
+        if not os.path.exists("/home/jiwon/DASH_Freshmen/example/tutorial/result/train"):
+            os.mkdir("/home/jiwon/DASH_Freshmen/example/tutorial/result/train")
+        
+        logger = get_logger('/home/jiwon/DASH_Freshmen/example/tutorial/result/train')
         print('Current cuda device:', torch.cuda.current_device())
         
         for epoch in range(self.epochs_run, max_epochs):
@@ -138,6 +146,7 @@ class Trainer:
             # loss 값 저장 
             train_log = {"epoch": epoch, "Train Loss": self.loss_per_batch, "Train Acc": self.acc_per_batch}
             print(train_log)
+            logger.info(train_log)
             
             # save_every일 때 마다 체크 포인트 저장 
             if self.gpu_id == 0 and epoch % self.save_every == 0:
@@ -153,17 +162,18 @@ def get_logger(path):
     
     if len(logger.handlers) > 0 : return logger
     
-    logger.setLevel(logging.info)
+    logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(message)s')
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
     
-    file_handler = logging.FileHandler(path) # 'train.log'
+    file_handler = logging.FileHandler(path+'train.log') # 'train.log'
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     return logger
 # end of get_logger ft
+
 
 def load_train_objs():
     traindir = os.path.join("/home/data/Imagenet", 'val')

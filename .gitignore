@@ -3,3 +3,5 @@ resnet_dist.pth
 
 
 __pycache__/dataLoader.cpython-38.pyc
+snapshot.pth
+example/tutorial/result/traintrain.log
