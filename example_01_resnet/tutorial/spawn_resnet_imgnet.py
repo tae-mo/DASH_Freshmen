@@ -168,7 +168,7 @@ def get_logger(path):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
     
-    file_handler = logging.FileHandler(path+'train.log') # 'train.log'
+    file_handler = logging.FileHandler(path+'.log') # 'train.log'
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     return logger

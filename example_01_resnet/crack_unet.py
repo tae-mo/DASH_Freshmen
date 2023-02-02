@@ -193,7 +193,7 @@ def main():
     #
     train_set = CrackDataset(split='train')
     test_set = CrackDataset(split='test')
-    train_loader = get_loader(train_set, batch_size=args.batch_size, num_workers=num_workers,             mode=args.data_loader)
+    train_loader = get_loader(train_set, batch_size=args.batch_size, num_workers=num_workers, mode=args.data_loader)
     test_loader = get_loader(test_set, batch_size=args.batch_size, num_workers=num_workers, mode=args.data_loader)
     #
     model = create_model(device, type=args.model)

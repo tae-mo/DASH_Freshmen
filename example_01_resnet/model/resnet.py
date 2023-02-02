@@ -11,8 +11,9 @@ import numpy as np
 class Block(nn.Module):
     def __init__(self, num_layers, in_channels, out_channels, downsample=None, stride=1):
         assert num_layers in [18, 34, 50, 101, 152], "should be a a valid architecture"
+        self.num_layers = num_layers
         super(Block, self).__init__()
-        #skip connection : optional (downsample)
+        # skip connection : optional (downsample)
         self.downsample = downsample
         # self.num_layers = num_layers
         self.expansion = 4 if num_layers > 34 else 1 # ResNet50, 101, and 152 include additional layers of 1x1 kernels
@@ -31,14 +32,14 @@ class Block(nn.Module):
         self.conv_post = self._conv(out_channels, out_channels * self.expansion, kernel_siz=1, stride=1, padding=0)
     #
         
-    def _conv(self, in_channels, out_channels, kernel_size, stride, padding):
-        conv = nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
+    def _conv(self, in_channels, out_channels, kernel_siz, stride, padding):
+        conv = nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_siz, stride, padding),
                                 nn.BatchNorm2d(out_channels))
         return conv
     #
 
-    def _convReLU(self, in_channels, out_channels, kernel_size, stride, padding):
-        conv1 = nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
+    def _convReLU(self, in_channels, out_channels, kernel_siz, stride, padding):
+        conv1 = nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_siz, stride, padding),
                                 nn.BatchNorm2d(out_channels),
                                 nn.ReLU() )
         return conv1
@@ -46,6 +47,7 @@ class Block(nn.Module):
     
     def forward(self, x):
         identity = x                # original source
+        
         if self.num_layers > 34: 
             x = self.conv_pre(x)    # 1x1 kernels
         x = self.conv33(x)          # 3x3 kernels
@@ -65,7 +67,6 @@ class Block(nn.Module):
 
 class ResNet(nn.Module):
     def __init__(self, num_layers, block, image_channels, num_classes):
-        assert num_layers in [18, 34, 50, 101, 152], f'ResNet{num_layers}: Unknown architecture!'
         super(ResNet, self).__init__()
         self.expansion = 4 if num_layers > 34 else 1 # ResNet50, 101, and 152 include additional layers of 1x1 kernels
         
@@ -87,7 +88,7 @@ class ResNet(nn.Module):
 
         # ResNetLayers
         self.layer1 = self._make_layers(num_layers, block, layers[0], intermediate_channels=64, stride=1)
-        self.layer2 = self._make_layers(num_layers, block, layers[1], intermediate_channels=128, stride=2)
+        self.layer2 = self._make_layers(num_layers, block, layers[1], intermediate_channels=128, stride=2, idx=2)
         self.layer3 = self._make_layers(num_layers, block, layers[2], intermediate_channels=256, stride=2)
         self.layer4 = self._make_layers(num_layers, block, layers[3], intermediate_channels=512, stride=2)
 
@@ -110,17 +111,31 @@ class ResNet(nn.Module):
         x = self.fc(x)
         return x
 
-    def _make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
-        layers = []
+    def _make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride, idx=1):
+        identity_downsample = None
 
-        identity_downsample = nn.Sequential(
-            nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
-            nn.BatchNorm2d(intermediate_channels*self.expansion)
+        if stride != 1 or self.in_channels != intermediate_channels * self.expansion:  ## error
+            identity_downsample = nn.Sequential(
+                nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(intermediate_channels*self.expansion)
             )
         
+        layers = []
         layers.append(block(num_layers, self.in_channels, intermediate_channels, identity_downsample, stride))
-        self.in_channels = intermediate_channels * self.expansion # 256
         
-        for i in range(num_residual_blocks - 1):
+        self.in_channels = intermediate_channels * self.expansion # inplanes 업데이트
+        
+        for i in range(1, num_residual_blocks):
             layers.append(block(num_layers, self.in_channels, intermediate_channels)) # 256 -> 64, 64*4 (256) again
         return nn.Sequential(*layers)
+    
+
+from typing import Any
+def myResnet(
+    num_layers: int,
+    block: Block,
+    image_channels: int = 3,
+    num_classes: int = 1000
+) -> ResNet:
+    model = ResNet(num_layers=num_layers, block=block, image_channels=image_channels, num_classes=num_classes)
+    return model
