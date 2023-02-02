@@ -205,6 +205,4 @@ if __name__ == "__main__":
     ddp_setup()
     main(rank=local_rank, batch_size=args.batch_size, world_size=dist.get_world_size())
 
-    #save
-
     
