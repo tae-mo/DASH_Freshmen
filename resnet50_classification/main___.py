@@ -196,7 +196,6 @@ def main(rank, batch_size: int, world_size):
         scheduler.step()
         dist.barrier()
 
-    
 
 if __name__ == "__main__":
     local_rank = int(os.environ["LOCAL_RANK"])
