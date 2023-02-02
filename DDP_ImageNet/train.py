@@ -27,7 +27,7 @@ def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (floa
                 logging_loss = 0
                 logging_acc = 0
         
-        tq.set_postfix(Loss ='{:.5f}'.format(running_loss/(idx+1)), Acc ='{:.5f}'.format(train_acc))
+        tq.set_postfix(Loss ='{:.5f}'.format(running_loss/(idx+1)), Acc ='{:.5f}'.format(train_acc/(idx+1)))
         tq.update(args.batch_size) # can not get it...
         
         
