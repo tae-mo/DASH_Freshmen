@@ -19,7 +19,7 @@ def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (floa
         running_loss += loss.item()
         logging_loss += loss.item()
         train_acc += (out.detach().argmax(-1) == label).float().sum() / len(data) # accuracy
-        logging_acc += (out.detach().argmax(-1) == label).float().sum() # accuracy
+        logging_acc += (out.detach().argmax(-1) == label).float().sum() / len(data) # accuracy
         
         if rank == 0:
             if not idx % args.every: # 정해진 수마다 출력 (나눈 값의 나머지가 0이면 출력됨)
@@ -36,7 +36,7 @@ def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (floa
         optimizer.step() # 가중치 업데이트
     tq.close()
     
-    return running_loss / len(train_loader), train_acc /len(train_loader) # loss 및 acc 리턴
+    return running_loss / len(train_loader), train_acc / len(train_loader) # loss 및 acc 리턴
 
 def validate(model, val_loader, criterion, rank, args):
     model.eval() # 검증 시에는 Batch Normalization과 Dropout를 학습과 다르게 설정해야 함
