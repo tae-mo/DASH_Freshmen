@@ -78,8 +78,8 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, scale=1):
 
 
 
-def load_train_objs(model_depth, mode='train'):
-    assert model_depth in [0, 18, 34, 50, 101, 152], f'ResNet{model_depth}: Unknown architecture!'
+def load_train_objs(mode='train'):
+    
     
     data_path = "/home/data/Imagenet"
     traindir = os.path.join(data_path, mode)
@@ -96,14 +96,14 @@ def load_train_objs(model_depth, mode='train'):
                                                         normalize])
                                         )
     
-    if model_depth == 0 :
-        model = models.__dict__['resnet50'](pretrained=True)
-    else : 
-        model = myResnet(num_layers=model_depth, block=Block)
+    # if model_depth == 0 :
+    #     model = models.__dict__['resnet50'](pretrained=True)
+    # else : 
+    #     model = myResnet(num_layers=model_depth, block=Block)
         
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
     
-    return train_dataset, model, optimizer
+    return train_dataset
 # end of load_train_objs ft
 
 

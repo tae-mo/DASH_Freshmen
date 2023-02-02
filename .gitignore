@@ -8,3 +8,4 @@ example/tutorial/result/traintrain.log
 example_01_resnet/tutorial/result/traintrain.log
 example_01_resnet/model/__pycache__/resnet.cpython-38.pyc
 example_01_resnet/__pycache__/utils.cpython-38.pyc
+example_01_resnet/result/train.log

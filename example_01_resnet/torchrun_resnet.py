@@ -44,11 +44,9 @@ def ddp_setup(): # torchrun
 
 class Trainer:
     def __init__( self,
-        model: torch.nn.Module,
+        model_depth: int,
         train_data: DataLoader,
         test_data: DataLoader,
-        optimizer: torch.optim.Optimizer,
-        gpu_id: int,
         save_every: int,
         snapshot_file: str = 'snapshot.pt'
     ) -> None:
@@ -56,25 +54,33 @@ class Trainer:
         self.acces = AverageMeter()
         self.logger = logging.getLogger()
         self.train_data, self.test_data = train_data, test_data
-        
         self.gpu_id = int(os.environ["LOCAL_RANK"]) #torchrun provide 
-        self.model = model.to(self.gpu_id)
+        
+        assert model_depth in [0, 18, 34, 50, 101, 152], f'ResNet{model_depth}: Unknown architecture!'
+        if model_depth == 0 :
+            self.model = models.__dict__['resnet50'](pretrained=True)
+        else :
+            self.model = myResnet(num_layers=model_depth, block=Block)
+        self.model = self.model.to(self.gpu_id) # "cuda:{}".format(self.gpu_id)) #f"Resuming training from snapshot at Epoch {self.epochs_run}"
+    
         
         self.save_every = save_every
         self.epochs_run = 0     # before get shpapshot, 0 is default
         self.snapshot_path = self._load_snapshot(snapshot_file)
 
         # Initializes internal Module state, shared by both nn.Module and ScriptModule.
-        self.model = DDP(model, device_ids=[gpu_id], output_device=torch.cuda.current_device()) 
+        self.model = DDP(self.model, device_ids=[self.gpu_id], output_device=torch.cuda.current_device()) 
         self.loss_fn = nn.CrossEntropyLoss().to(self.gpu_id)  #F.cross_entropy()
-        self.optimizer = optimizer
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)
         
 
     
     def _load_snapshot(self, snapshot_file): # snapshot.pt
         loc = f"cuda:{self.gpu_id}"
         
-        current_file_path = os.getcwd()
+        # current_file_path = os.getcwd() 
+        dir = os.path.realpath(__file__)
+        current_file_path = os.path.abspath(os.path.join(dir, os.pardir))
         _, self.result_dir = make_sure_dir(os.path.join(current_file_path, "result"))
         snapshot_path = os.path.join(self.result_dir, snapshot_file)
         
@@ -106,7 +112,7 @@ class Trainer:
         self.optimizer.zero_grad()
         
         output = self.model(source)
-        loss = self.loss_fn(output, targets)
+        loss = F.cross_entropy(output, targets)
         acc = Accuracy(output, targets)
         
         self.losses.update(val=loss.item(), batch_sz=source.size(0))
@@ -183,13 +189,14 @@ def main(
     scale: float = 1.0
     ):
     ddp_setup() # distributed data parallel
-    dataset, model, optimizer = load_train_objs(model_depth=model_depth)
+    dataset = load_train_objs()
     train_data, test_data = prepare_dataloader(dataset, batch_size, scale)
     
-    trainer = Trainer(model, train_data, test_data, optimizer, save_every, snapshot_path)
+    trainer = Trainer(model_depth=model_depth, train_data=train_data, test_data=test_data, save_every=save_every, snapshot_file=snapshot_path)
     trainer.train(total_epochs)
     
     destroy_process_group() # Destroy a given process group, and deinitialize the distributed package
+
 #
 
 
