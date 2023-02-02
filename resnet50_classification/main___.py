@@ -193,7 +193,6 @@ def main(rank, batch_size: int, world_size):
         if rank == 0:
             _save_snapshot(model, epoch)
 
-
         scheduler.step()
         dist.barrier()
 
