@@ -1,43 +1,44 @@
-import os
-import matplotlib.image as img
-from torch.utils.data import Dataset
-import torch
-
-def match_image(root):
-    images = []
-    a = os.listdir(root)
-
-    if '.DS_Store' in a: #예외처리
-        a.remove('.DS_Store')
-
-    for i, label in enumerate(a):
-        for j in os.listdir(os.path.join(root, label)):
-            image = img.imread(os.path.join(root, label, j))
-            images.append((i, image))  # 이미지를 어펜드할 필요 없음. 수정 필요
-
-    print("finished loading dataset")
-
-    return images
+import torchvision.transforms as tr
+from torchvision.datasets import ImageFolder
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import Dataset, DataLoader
 
 
-class Imagenet(Dataset):
-    def __init__(self, root, transform=None):
-        super(Imagenet, self).__init__()
-        self.root = root
-        self.labels = os.walk(root).__next__()[1]
-        self.images = match_image(root)
-        self.transform = transform
+def dataloader(batch_size: int, args):
+    stats = ((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)) #imagenet mean std 
 
-    def __getitem__(self, index):
-        if torch.is_tensor(index):
-            index = index.tolist()
+    #transf_train = tr.Compose([tr.Resize((224, 224)),tr.ToTensor(),tr.RandomHorizontalFlip(), tr.Normalize(*stats, inplace=True)])
 
-        label, image = self.images[index]
+    transforms = tr.Compose([
+        tr.Resize((224, 224)),
+        tr.RandomHorizontalFlip(),
+        tr.RandomVerticalFlip(),
+        tr.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
+        tr.ToTensor(),
+        tr.Normalize(*stats, inplace=True)])
 
-        if self.transform:
-            image = self.transform(image)
+    #train_set = torchvision.datasets.FakeData(1000, (3, 224, 224), 10, transform=transforms,target_transform=None) #dummy
+    #test_set = torchvision.datasets.FakeData(200, (3, 224, 224), 10, transform=transforms,target_transform=None) #dummy
 
-        return image, label
+    train_set = ImageFolder(args.train, transform=transforms,target_transform=None)
+    test_set = ImageFolder(args.test, transform=transforms,target_transform=None)
 
-    def __len__(self):
-        return len(self.images)
+
+    train_sampler=DistributedSampler(dataset=train_set,shuffle=True) #Default true
+    test_sampler=DistributedSampler(dataset=test_set,shuffle=False) 
+
+    train_dataloader = DataLoader(train_set,
+                                  batch_size=batch_size, 
+                                  pin_memory=True,
+                                  num_workers=args.num_workers,
+                                  shuffle=False,
+                                  sampler=train_sampler)
+    test_dataloader = DataLoader(test_set,
+                                  batch_size=batch_size, 
+                                  pin_memory=True,
+                                  num_workers=args.num_workers,
+                                  shuffle=False,
+                                  sampler=test_sampler)
+
+    return train_dataloader, test_dataloader
+   
