@@ -8,7 +8,6 @@ import torch.distributed as dist
 from sched import scheduler
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from ResNet import ResNet, Bottleneck
 from prepare_dataset import pre_dset
 from train import train, validate
 from utils import save_ckpt
@@ -18,6 +17,7 @@ def parse_args():
     
     ## Config
     parser.add_argument("--exp", type=str, default="./model_checkpoint") # checkpoint를 저장할 경로
+    parser.add_argument("--model", type=str, default="resnet")
     
     ## Training
     parser.add_argument("--lr", type=float, default=1e-4) # 학습률
@@ -44,7 +44,17 @@ def main(rank, world_size, args):
     
     train_loader, val_loader = pre_dset(rank, world_size, args) # 데이터 불러오기 및 전처리
     
-    model = ResNet(Bottleneck, [3,4,6,3]).to(rank) # model 생성자
+    if args.model == 'resnet':
+        from ResNet import ResNet, Bottleneck
+        print('model: ResNet')
+        model = ResNet(Bottleneck, [3,4,6,3]).to(rank) # model 생성자
+    elif args.model == 'resnet':
+        from ViT import vision_transformer
+        print('model: ViT')
+        model = vision_transformer().to(rank)
+    else:
+        print('please enter a valid model name')
+        return None
     model = DDP(model, device_ids=[rank], output_device=rank) # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
     
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # 최적화기법 및 learning rate 설정
