@@ -24,7 +24,7 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description='simple distributed training job')
-parser.add_argument('--epoch', default=20, type=int, help='Total epochs to train the model')
+parser.add_argument('--epoch', default=70, type=int, help='Total epochs to train the model')
 parser.add_argument('--save_every', default=1, type=int, help='How often to save a snapshot')
 parser.add_argument('--batch_size', default=64, type=int, help='Input batch size on each device (default: 32)')
 parser.add_argument('--train', '-tr', required=False, default='/home/data/Imagenet/train', help='Root of Trainset')
