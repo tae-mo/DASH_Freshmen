@@ -1,10 +1,10 @@
 {
   "expname": "TEST",
   "resume": "",
-  "data_path": "cifar10",
+  "data_path": "/home/data/Imagenet",
   "model": "resnet50",
-  "epochs": 90,
-  "batch_size": 128,
+  "epochs": 20,
+  "batch_size": 64,
   "lr": 0.001,
   "print_freq": 1000,
   "save_every": 100,

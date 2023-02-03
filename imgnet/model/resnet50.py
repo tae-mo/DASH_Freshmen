@@ -49,8 +49,17 @@ class ResNet(nn.Module):
         self.conv3 = self._make_layer(block, 128, layers[1], downsampling=True)
         self.conv4 = self._make_layer(block, 256, layers[2], downsampling=True)
         self.conv5 = self._make_layer(block, 512, layers[3], downsampling=True)
-        self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
-        self.fc = nn.Linear(2048, num_classes)
+        # self.avgpool = nn.AvgPool2d(kernel_size=7, stride=1)
+        self.gap = nn.AdaptiveAvgPool2d(1)
+        
+        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
         
     def forward(self, x):
         out = self.conv1(x)
@@ -58,8 +67,11 @@ class ResNet(nn.Module):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.conv5(out)
-        out = self.avgpool(out)
-        out = torch.flatten(out, 1)
+
+        # out = self.avgpool(out)
+        # out = torch.flatten(out, 1)
+        out = self.gap(out)
+        out = out.flatten(1)
         out = self.fc(out)
         
         return out

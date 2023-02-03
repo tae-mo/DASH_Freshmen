@@ -35,7 +35,7 @@ def ImgNetData(rank, world_size, args):
     ])
     val_transforms = transforms.Compose([
         transforms.Resize(256),
-        transforms.CenterCrop(244),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
@@ -64,25 +64,25 @@ def ImgNetData(rank, world_size, args):
                                         num_replicas=world_size,
                                         rank=rank,
                                         shuffle=True,
-                                        drop_last=True) # DistributedSampler에 shuffle option을 주면 DataLoader에는 주면 안됨
+                                        drop_last=False) # DistributedSampler에 shuffle option을 주면 DataLoader에는 주면 안됨
     val_sampler = DistributedSampler(val_data,
                                         num_replicas=world_size,
                                         rank=rank,
                                         shuffle=False,
-                                        drop_last=True)
+                                        drop_last=False)
     
     train_loader = DataLoader(train_data,
                               batch_size=args.batch_size,
                               pin_memory=True,
                               num_workers=args.workers,
-                              drop_last=True,
+                              drop_last=False,
                               sampler=train_sampler)
     
     val_loader = DataLoader(val_data,
                               batch_size=args.batch_size,
                               pin_memory=True,
                               num_workers=args.workers,
-                              drop_last=True,
+                              drop_last=False,
                               sampler=val_sampler)
     
     return train_loader, val_loader

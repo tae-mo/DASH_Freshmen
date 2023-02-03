@@ -2,9 +2,11 @@ import os
 import argparse
 import builtins
 import shutil
+import wandb
 
 import torch
 import torch.nn as nn
+from datetime import datetime
 
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -12,6 +14,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torch.optim.lr_scheduler import StepLR
 from model.resnet50 import BottleNeck, ResNet
+from model.vit import ViT
 from data.data import ImgNetData
 from Train import train, validate
 import utils
@@ -20,27 +23,36 @@ from utils import AverageMeter, Logger, print_args, save_args, load_args, Accura
 def parse_arg():
     parser = argparse.ArgumentParser(description='Imagenet classifictation')
     # config
-    parser.add_argument('--expname', default='TEST', type=str,
+    parser.add_argument('--expname', default='resnet', type=str,
                     help='name of experiment')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
+    parser.add_argument('--is_wandb', type=bool, default=True)
     
     # training
     parser.add_argument('--data-path', nargs='?', default='/home/data/Imagenet',
                     help='kinds of dataset') # metavar:인자의 이름지정, nargs 값 개수 지정
     parser.add_argument('-m','--model', default='resnet50',
                     help='kinds of model')
-    parser.add_argument('--epochs', default=90, type=int, metavar='N',
+    parser.add_argument('--epochs', default=10, type=int, metavar='N',
                     help='number of total epochs of run')
-    parser.add_argument('-b','--batch_size', default=256, type=int, metavar='N',
+    parser.add_argument('-b','--batch_size', default=128, type=int, metavar='N',
                     help='mini-batch size (default: 256), this is the total batch size of all GPUs on the current node whe using Data Parallel or Distributed Data Parallel')
-    parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+    parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
+    parser.add_argument('--beta1', default=0.9, type=float, metavar='BETA1',
+                        help='beta1 for Adam')
+    parser.add_argument('--beta2', default=0.999, type=float, metavar='BETA2',
+                        help='beta2 for Adam')
+    parser.add_argument('--wd', default=0.2, type=float, metavar='weight_decay',
+                        help='weight decay for Adam')
     parser.add_argument('-p', '--print-freq', default=1000, type=int,
                     metavar='N', help='print frequency (default: 1000)')
-    parser.add_argument("--save-every", type=int, default=100)
+    parser.add_argument("--save-every", type=int, default=10)
     parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set') # dest: 적용 위치 지정, '-e'값이 args.evaluate에 저장되는것
+    parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
+                        help='start epoch for resume training')
     
     # data loader
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
@@ -61,6 +73,11 @@ def cleanup():
     dist.destroy_process_group()
 
 def main(args):
+    now = datetime.now()
+    if args.is_wandb:
+        wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961')
+        wandb.config.update(args)
+    
     utils.init_distributed_mode(args)
     
     torch.cuda.set_device(args.gpu) # 각 프로세스에 gpu id setting
@@ -72,12 +89,15 @@ def main(args):
     if args.model == 'resnet50':
         model = ResNet(BottleNeck).to(args.gpu)
     elif args.model == 'vit':
-        pass
+        model = ViT().to(args.gpu)
     model = DDP(model, device_ids=[args.gpu], output_device=args.gpu)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), weight_decay=args.wd)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
+    
+    wandb.watch(model, criterion, log="all", log_freq=10)
     
     # 옵션1: resume 방법
     if args.resume:
@@ -92,6 +112,7 @@ def main(args):
             args.start_epoch = checkpoint['epoch']
             model.load_state_dict((checkpoint['state_dict']))
             optimizer.load_state_dict(checkpoint['optimizer'])
+            optimizer.param_groups[0]['capturable'] = True
             print("=> loaded checkpoint '{}' (epoch {})"
                     .format(args.resume, checkpoint['epoch']))
         else:
@@ -101,19 +122,24 @@ def main(args):
         validate(val_loader, model, criterion, args)
         return
     
-    if args.gpu ==0: print(f"Start Training")
+    if args.gpu == 0: print(f"Start Training")
     
     best_acc1, best_loss = 0., float('inf')
-    for epoch in range(args.epochs):
+    for epoch in range(args.start_epoch, args.epochs):
         train_loader.sampler.set_epoch(epoch)
         val_loader.sampler.set_epoch(epoch)
         
         train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, args.gpu, args)
         
+        print("====================Validate Start==============")
         val_loss, top1_acc = validate(val_loader, model, criterion, args.gpu, args)
         
         is_best = top1_acc > best_acc1
         best_acc1 = max(top1_acc, best_acc1)
+        best_loss = min(val_loss, best_loss)
+        
+        wandb.log({"train loss": train_loss, "train acc": train_acc, "val loss": val_loss,
+               "val_acc": top1_acc})
         
         if args.gpu == 0 and epoch % args.save_every == 0:
             save_checkpoint({
@@ -121,10 +147,11 @@ def main(args):
                 'model': args.model,
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
+                'best_loss': best_loss,
                 'optimizer' : optimizer.state_dict(),
                 'scheduler' : scheduler.state_dict()
             }, is_best, args=args)
-            
+            print("checkpoint is saved!!")
         scheduler.step()
         dist.barrier()
         

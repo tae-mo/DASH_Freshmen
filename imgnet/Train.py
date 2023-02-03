@@ -80,4 +80,4 @@ def validate(val_loader, model, criterion, rank, args):
                     loss=losses, top1=top1_acc))
         print('* Top 1-err {top1.avg[0]:.3f}  Test Loss {loss.avg:.3f}'.format(
             top1=top1_acc, loss=losses))
-        return top1_acc.avg, losses.avg
+        return losses.avg, top1_acc.avg
