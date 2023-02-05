@@ -30,7 +30,6 @@ def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (floa
         tq.set_postfix(Loss ='{:.5f}'.format(running_loss/(idx+1)), Acc ='{:.5f}'.format(train_acc/(idx+1)))
         tq.update(args.batch_size) # can not get it...
         
-        
         optimizer.zero_grad() # 학습마다 기울기를 0으로 초기화
         loss.backward() # 가중치와 편향을 계산
         optimizer.step() # 가중치 업데이트

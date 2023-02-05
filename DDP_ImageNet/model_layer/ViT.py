@@ -9,14 +9,14 @@ def pair(t) -> tuple: # 값이 하나면 2개의 같은 요소로 반환
 
 class PreNorm(nn.Module): # Batch Normalization
     def __init__(self, dim, fn):
-        super(PreNorm, self).__int__()
+        super(PreNorm, self).__init__()
         self.norm = nn.LayerNorm(dim) # 배치 정규화
         self.fn = fn # 각각의 layer(Attention or FeedForward)를 추가
     def forward(self, x, **kwargs): # **kwargs: keword argument의 줄임말로 키워드를 제공({'키워드': '특정값'} 형태로 받아짐)
-        return self.fn(self.norm(x), **kwarsgs) # batch normalize layer 통과 후, 지정한 layer(Attention or FeedForward) 통과
+        return self.fn(self.norm(x), **kwargs) # batch normalize layer 통과 후, 지정한 layer(Attention or FeedForward) 통과
     
 class FeedForward(nn.Module): # MLP
-    def __init__(self, idm, hiddne_dim, dropout = 0.):
+    def __init__(self, dim, hidden_dim, dropout = 0.):
         super(FeedForward, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim), # FC layer
@@ -46,18 +46,18 @@ class Attention(nn.Module): # Multi-Head Attention module
             nn.Dropout(dropout)
         ) if project_out  else nn.Identity() # 만약 project_out이 True면 Linear를, False면 입력 그대로 반환
         
-        def forward(self, x):
-            qkv = self.to_qkv(x).chunk(3, dim=-1) # query, key, value를 생성, chunk: list데이터를 지정된 개수의 리스트로 나누어 묶음
-            q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv) # query, key, value의 tensor를 연산하기 위해 변환(차원 요소 정렬)
-            
-            dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale # vector 사이의 score를 구한 후, 더 안정적인 gradient를 가지기 위해 head dim의 제곱근으로 나눠줌
-            
-            attn = self.attend(dots) # softmax
-            attn = self.dropout(attn)
-            
-            out = torch.matmul(attn, v) # softmax * value
-            out = rearrange(out, 'b h n d -> b n (h d)') # tensor를 다시 입력과 같이 shape복원(차원 요소 정렬)
-            return self.to_out(out)
+    def forward(self, x):
+        qkv = self.to_qkv(x).chunk(3, dim=-1) # query, key, value를 생성, chunk: list데이터를 지정된 개수의 리스트로 나누어 묶음
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv) # query, key, value의 tensor를 연산하기 위해 변환(차원 요소 정렬)
+        
+        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale # vector 사이의 score를 구한 후, 더 안정적인 gradient를 가지기 위해 head dim의 제곱근으로 나눠줌
+        
+        attn = self.attend(dots) # softmax
+        attn = self.dropout(attn)
+        
+        out = torch.matmul(attn, v) # softmax * value
+        out = rearrange(out, 'b h n d -> b n (h d)') # tensor를 다시 입력과 같이 shape복원(차원 요소 정렬)
+        return self.to_out(out)
         
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
@@ -75,7 +75,7 @@ class Transformer(nn.Module):
         return x
         
 class ViT(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size=256, patch_size=32, num_classes=1000, dim=1024, depth=6, heads=16, mlp_dim=2048, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super(ViT, self).__init__()
         image_height, image_width = pair(image_size) # image의 height, width
         patch_height, patch_width = pair(patch_size) # patch size
@@ -84,13 +84,13 @@ class ViT(nn.Module):
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size 이미지 크기를 패치 크기로 나뉘어 떨어져야 합니다!'
         
         num_patches = (image_height // patch_height) * (image_width // patch_width) # 이미지를 패치로 나눴을 때 나오는 개수(몫)
-        patch_dim = channels * patch_hegiht * patch_width # 채널 수 * patch**2
+        patch_dim = channels * patch_height * patch_width # 채널 수 * patch**2
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
         
         self.to_patch_embedding = nn.Sequential(
             Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width), # Lineary에 넣기 위한 shape을 맞춰줌 {batch_size, image flatten, channel*patch*patch}
             nn.LayerNorm(patch_dim), # 배치 정규화
-            nn.Linear(pathc_dim, dim),
+            nn.Linear(patch_dim, dim),
             nn.LayerNorm(dim), # 배치 정규화
         )
         

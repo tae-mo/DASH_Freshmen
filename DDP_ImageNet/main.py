@@ -45,17 +45,17 @@ def main(rank, world_size, args):
     train_loader, val_loader = pre_dset(rank, world_size, args) # 데이터 불러오기 및 전처리
     
     if args.model == 'resnet':
-        from ResNet import ResNet, Bottleneck
+        from model_layer.ResNet import ResNet, Bottleneck
         print('model: ResNet')
         model = ResNet(Bottleneck, [3,4,6,3]).to(rank) # model 생성자
-    elif args.model == 'resnet':
-        from ViT import vision_transformer
+    elif args.model == 'vit':
+        from model_layer.ViT import ViT
         print('model: ViT')
-        model = vision_transformer().to(rank)
+        model = ViT(image_size=args.imgsz, dropout=0.1, emb_dropout=0.1).to(rank)
     else:
-        print('please enter a valid model name')
+        print('please enter a valid model name(resnet or vit)')
         return None
-    model = DDP(model, device_ids=[rank], output_device=rank) # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
+    model = DDP(model, device_ids=[rank], output_device=rank, find_unused_parameters=args.model == 'vit') # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
     
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # 최적화기법 및 learning rate 설정
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma) # learning rate를 step_size마다 gamma를 곱하여 감소시킴
