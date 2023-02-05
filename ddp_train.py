@@ -31,42 +31,8 @@ check_path = "/media/data1/geonho/resnet50_checkpoints/snapshot.pt"
 def setup():
     init_process_group(backend="nccl")
 
-
 def cleanup():
     destroy_process_group()
-
-
-class Validator:
-    def __init__(
-        self,
-        model: torch.nn.Module,
-        valid_loader: DataLoader,
-    ) -> None:
-        self.gpu_id = int(os.environ["LOCAL_RANK"])
-        self.gpu_id = self.gpu_id
-        self.model = model.to(self.gpu_id)
-        self.valid_loader = valid_loader
-        self.model = DDP(model, device_ids = [self.gpu_id])
-
-    # 배치 한번
-    def _run_batch(self, source, targets):
-        output = self.model(source)
-        loss = F.cross_entropy(output, targets)
-        return loss
-
-    # 전체 validation
-    def validate(self):
-        b_sz = len(next(iter(self.valid_loader))[0])
-        print(f"[GPU{self.gpu_id}] Valid | Batchsize: {b_sz} | Steps: {len(self.valid_loader)}")
-        valid_bar = tqdm(self.valid_loader)
-        for source, targets in valid_bar:
-            source = source.to(self.gpu_id)
-            targets = targets.to(self.gpu_id)
-            loss = self._run_batch(source, targets)
-            valid_bar.set_description(desc = '[Validation]   cost: %.9f' % (
-                loss,
-            ))
-
 
 class Trainer:
     def __init__(
@@ -86,6 +52,8 @@ class Trainer:
         self.save_every = save_every
         self.epochs_run = 0
 
+        self.valid_cost = AverageMeter()
+        self.valid_acc = AverageMeter()
         self.cost = AverageMeter()
 
         self.snapshot_path = snapshot_path
@@ -93,9 +61,10 @@ class Trainer:
             print("Loading snapshot")
             self._load_snapshot(snapshot_path)
 
-        self.model = DDP(model, device_ids = [self.gpu_id])
-        self.validator = Validator(model, valid_loader)
+        self.model = DDP(self.model, device_ids = [self.gpu_id])
 
+    #########################################################################################################
+    # Train
     # 배치 한번
     def _run_batch(self, source, targets):
         self.optimizer.zero_grad()
@@ -105,14 +74,8 @@ class Trainer:
         self.optimizer.step()
         return loss
 
-    def _load_snapshot(self, snapshot_path):
-        snapshot = torch.load(snapshot_path)
-        self.model.load_state_dict(snapshot["MODEL_STATE"])
-        self.epochs_ron = snapshot["EPOCHS_RUN"]
-        print("Resuming training from snapshot at Epoch {self.epochs_run}")
-
     # 에폭 한번
-    def _run_epoch(self, epoch):
+    def _run_epoch(self, epoch, max_epochs):
         b_sz = len(next(iter(self.train_loader))[0])
         print(f"[GPU{self.gpu_id}] Epoch {epoch} | Batchsize: {b_sz} | Steps: {len(self.train_loader)}")
         self.train_loader.sampler.set_epoch(epoch)
@@ -129,10 +92,13 @@ class Trainer:
             self.cost.update(loss, num_data)
 
             train_bar.set_description(desc = '[%d/%d]   cost: %.9f' % (
-                epoch+1, self.epochs_run, loss/num_data,
+                epoch+1, max_epochs, self.cost.avg,
             ))
-        print(f'Epoch {epoch}, cost : {self.cost.avg}')
-        
+            
+        print(f'Epoch {epoch}, Train cost : {self.cost.avg}')
+        self.cost.__init__()
+    #########################################################################################################
+    # Model load, save
     # 체크포인트 저장
     def _save_snapshot(self, epoch):
         snapshot = {}
@@ -141,22 +107,58 @@ class Trainer:
         torch.save(snapshot, self.snapshot_path)
         print(f"Epoch {epoch} | Training snapshot saved at", self.snapshot_path)
 
+    def _load_snapshot(self, snapshot_path):
+        snapshot = torch.load(snapshot_path)
+        self.model.load_state_dict(snapshot["MODEL_STATE"])
+        self.epochs_run = snapshot["EPOCHS_RUN"]
+        print("Resuming training from snapshot at Epoch {self.epochs_run}")
+
+
+    #########################################################################################################
+    # Evaluate
     # 검증 수행
-    def _run_validation(self):
-        self.validator.validate()
+    def _run_valid_batch(self, source, targets):
+        output = self.model(source)
+        loss = F.cross_entropy(output, targets, reduction='mean')
+        acc = Accuracy(output, targets)
+        return loss, acc
+
+    def _run_validate(self):
+        b_sz = len(next(iter(self.valid_loader))[0])
+        print(f"[GPU{self.gpu_id}] Valid | Batchsize: {b_sz} | Steps: {len(self.valid_loader)}")
+
+        valid_bar = tqdm(self.valid_loader)
+        for source, targets in valid_bar:
+            source = source.to(self.gpu_id)
+            targets = targets.to(self.gpu_id)
+            loss, top1_acc = self._run_valid_batch(source, targets)
+
+            num_data = len(source)
+
+            self.valid_cost.update(loss.item(), num_data)
+            self.valid_acc.update(top1_acc, num_data)
+
+            valid_bar.set_description(desc = '[Validation]   cost: %.9f, acc: %.3f' % (
+                self.valid_cost.avg, self.valid_acc.avg
+            ))
+        print(f'Validation cost : {self.valid_cost.avg}, acc : {self.valid_acc.avg}')
+        self.valid_cost.__init__()
+        self.valid_acc.__init__()
+    #########################################################################################################
 
     # 전체 훈련
     def train(self, max_epochs: int):
         for epoch in range(self.epochs_run, max_epochs):
 
-            self._run_epoch(epoch)
-            self._run_validation()
+            self.model.train()
+            self._run_epoch(epoch, max_epochs)
+
+            self.model.eval()
+            self._run_validate()
 
             # save_every의 에폭 간격으로 저장
             if self.gpu_id==0 and epoch % self.save_every == 0:
                 self._save_snapshot(epoch)
-
-
 
 
 
@@ -169,7 +171,7 @@ def load_train_objs():
     train_set = torchvision.datasets.ImageNet(train_path, split='train', transform=transform)
     val_set = torchvision.datasets.ImageNet(valid_path, split='val', transform=transform)
     model = ResNet50()
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-4, weight_decay=5e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=7e-5, weight_decay=3e-5)
     return train_set, val_set, model, optimizer
 
 
@@ -194,7 +196,7 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, mode: str = 'Train'):
 
 def main(save_every: int, total_epochs: int, batch_size: int, snapshot_path: str = check_path):
     setup()
-    train_dataset, valid_dataset, model, optimizer=load_train_objs()
+    train_dataset, valid_dataset, model, optimizer = load_train_objs()
     train_data = prepare_dataloader(train_dataset, batch_size, mode = 'Train')
     valid_data = prepare_dataloader(valid_dataset, batch_size, mode = 'Test')
     trainer = Trainer(model, train_data, valid_data, optimizer, save_every, snapshot_path)
@@ -211,7 +213,7 @@ if __name__ == "__main__":
     main(save_every, total_epochs, batch_size)
 
 
-# CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=gpu ddp_train.py --epochs 20 --save_every 2 --batch_size 64
+# CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=gpu ddp_train.py --epochs 50 --save_every 1 --batch_size 64
 
 
 

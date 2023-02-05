@@ -1,19 +1,5 @@
-
 import torch
 import numpy as np
-
-class AverageMeter(object):
-    def __init__(self):
-        self.avg = 0.0
-        self.sum = 0.0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-
 
 def Accuracy(output, target, topk=(1,)):
     with torch.no_grad():
@@ -30,3 +16,7 @@ def Accuracy(output, target, topk=(1,)):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res[0][0]
 
+
+output = torch.tensor([[0, 0, 0.9, 0.1], [0, 0.85, 0.15, 0], [0, 0, 0.8, 0.2], [1, 0, 0, 0]])
+target = torch.tensor([2, 1, 1, 0])
+print(Accuracy(output, target))
