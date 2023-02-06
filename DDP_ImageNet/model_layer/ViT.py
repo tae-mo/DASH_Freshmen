@@ -75,7 +75,7 @@ class Transformer(nn.Module):
         return x
         
 class ViT(nn.Module):
-    def __init__(self, *, image_size=256, patch_size=32, num_classes=1000, dim=1024, depth=6, heads=16, mlp_dim=2048, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, *, image_size=256, patch_size=32, num_classes=1000, dim=1024, depth=10, heads=16, mlp_dim=2048, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super(ViT, self).__init__()
         image_height, image_width = pair(image_size) # image의 height, width
         patch_height, patch_width = pair(patch_size) # patch size
@@ -118,7 +118,7 @@ class ViT(nn.Module):
         x = self.dropout(x)
         
         # Transformer Encoder
-        s = self.transformer(x)
+        x = self.transformer(x)
         
         # pool == mean이면 각 행의 평균을 구하여 반환
         # pool == cls이면 각 행의 가장 첫번째 인덱스인 클래스 토큰을 반환

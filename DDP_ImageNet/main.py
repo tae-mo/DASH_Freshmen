@@ -55,7 +55,7 @@ def main(rank, world_size, args):
     else:
         print('please enter a valid model name(resnet or vit)')
         return None
-    model = DDP(model, device_ids=[rank], output_device=rank, find_unused_parameters=args.model == 'vit') # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
+    model = DDP(model, device_ids=[rank], output_device=rank) # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
     
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # 최적화기법 및 learning rate 설정
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma) # learning rate를 step_size마다 gamma를 곱하여 감소시킴
