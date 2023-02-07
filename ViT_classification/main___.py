@@ -30,7 +30,7 @@ parser.add_argument('--batch_size', default=64, type=int, help='Input batch size
 parser.add_argument('--train', '-tr', required=False, default='/home/data/Imagenet/train', help='Root of Trainset')
 parser.add_argument('--test', '-ts', required=False, default='/home/data/Imagenet/validation', help='Root of Testset')
 parser.add_argument('--snapshot_path', '-sn', required=False, default='/home/syon1203/DASH_Freshmen/ViT_classification/snapshot.pt', help='Root of Saving Path')
-parser.add_argument('--model', '-m', required=False, default='resnet50', help='Model')
+parser.add_argument('--model', '-m', required=False, default='VisionTransformer', help='Model')
 parser.add_argument('--lr', '-l', required=False, default=1e-4, help='Learning Rate')
 parser.add_argument('--num_workers', '-w', required=False, default=8, help='Workers')
 parser.add_argument('--load_model', '-lm', required=False, default=False, help='Load model')
@@ -38,11 +38,26 @@ parser.add_argument('--load_model', '-lm', required=False, default=False, help='
 
 def main(rank, batch_size: int, world_size):
 
+    import torch, gc
+    gc.collect()
+    torch.cuda.empty_cache()
+
     torch.cuda.set_device(rank) # set gpu id for each process
 
     train_loader, test_loader = dataset.dataloader(batch_size, args)
 
-    model = MD.ViT().to(rank)
+    custom_config = {
+        "img_size": 224,
+        "in_chans": 3,
+        "patch_size": 16,
+        "embed_dim": 768,
+        "depth": 12,
+        "n_heads": 12,
+        "qkv_bias": True,
+        "mlp_ratio": 4
+    }
+
+    model = MD.VisionTransformer(**custom_config).to(rank)
     
     if args.load_model:
 

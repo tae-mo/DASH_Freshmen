@@ -10,9 +10,9 @@ def dataloader(batch_size: int, args):
     #transf_train = tr.Compose([tr.Resize((224, 224)),tr.ToTensor(),tr.RandomHorizontalFlip(), tr.Normalize(*stats, inplace=True)])
 
     transforms = tr.Compose([
-        tr.Resize((384, 384)),
+        tr.Resize((224, 224)),
         tr.RandomHorizontalFlip(),
-        tr.RandomVerticalFlip(),
+        #tr.RandomVerticalFlip(),
         tr.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
         tr.ToTensor(),
         tr.Normalize(*stats, inplace=True)])
