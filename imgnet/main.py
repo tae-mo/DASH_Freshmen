@@ -37,14 +37,14 @@ def parse_arg():
     parser.add_argument('--epochs', default=10, type=int, metavar='N',
                     help='number of total epochs of run')
     parser.add_argument('-b','--batch_size', default=128, type=int, metavar='N',
-                    help='mini-batch size (default: 256), this is the total batch size of all GPUs on the current node whe using Data Parallel or Distributed Data Parallel')
+                    help='mini-batch size (default: 128), this is the total batch size of all GPUs on the current node whe using Data Parallel or Distributed Data Parallel')
     parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
     parser.add_argument('--beta1', default=0.9, type=float, metavar='BETA1',
                         help='beta1 for Adam')
     parser.add_argument('--beta2', default=0.999, type=float, metavar='BETA2',
                         help='beta2 for Adam')
-    parser.add_argument('--wd', default=0.2, type=float, metavar='weight_decay',
+    parser.add_argument('--wd', default=0., type=float, metavar='weight_decay',
                         help='weight decay for Adam')
     parser.add_argument('-p', '--print-freq', default=1000, type=int,
                     metavar='N', help='print frequency (default: 1000)')

@@ -113,7 +113,7 @@ class ViT(nn.Module):
         # )
         
         
-        self.pos_embedding = nn.Parameter(torch.rand(1, num_patchs + 1, dim)) # nostion에 대한 정보인데 rand를 써도 괜찮을까? 학습이 되면서 찾아지나?
+        self.pos_embedding = nn.Parameter(torch.rand(1, num_patchs + 1, dim)) # postion에 대한 정보인데 rand를 써도 괜찮을까? 학습이 되면서 찾아지나?
         self.cls_token = nn.Parameter(torch.rand(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
         
