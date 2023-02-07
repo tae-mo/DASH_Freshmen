@@ -273,13 +273,13 @@ def main():
             'train_loss': trainL
             }, best_model_path)
 
-    with open(path+'log_csv.csv','a') as f:
-        w = csv.writer(f)
-        if epoch == 0:
-            w.writerow(log.keys())
-            w.writerow(log.values())
-        else:
-            w.writerow(log.values())
+        with open(path+'log_csv.csv','a') as f:
+            w = csv.writer(f)
+            if epoch == 0:
+                w.writerow(log.keys())
+                w.writerow(log.values())
+            else:
+                w.writerow(log.values())
         gc.collect()
         torch.cuda.empty_cache()
 

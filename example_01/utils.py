@@ -35,7 +35,6 @@ def Accuracy(output, targets):
 
 def get_logger(path, mode='train'):
     logger = logging.getLogger()
-    
     if len(logger.handlers) > 0 : return logger
     
     logger.setLevel(logging.INFO)
@@ -61,63 +60,35 @@ def prepare_dataloader(dataset: Dataset, batch_size: int, scale=1):
     use_sz = int(origin_sz* scale)
     dataset, _ = random_split(dataset, [use_sz, origin_sz-use_sz])
     train, test = random_split(dataset, [int(use_sz*0.8), use_sz-int(use_sz*0.8)])
-    return DataLoader(
-        train,
-        batch_size=batch_size,
-        pin_memory=True,
-        shuffle=False,
+    return DataLoader(train,
+        batch_size=batch_size, pin_memory=True,
+        shuffle=False, num_workers=8,
         sampler=DistributedSampler(train) # Sampler that restricts data loading to a subset of the dataset
-    ), DataLoader(
-        test,
-        batch_size=batch_size,
-        pin_memory=True,
-        shuffle=False,
+        ), DataLoader(test,
+        batch_size=batch_size, pin_memory=True,
+        shuffle=False, num_workers=8,
         sampler=DistributedSampler(test) # Sampler that restricts data loading to a subset of the dataset
-    )
+        )
 # end of prepare_dataloader ft
 
-
-
 def load_train_objs(mode='train'):
-    
-    
     data_path = "/home/data/Imagenet"
     traindir = os.path.join(data_path, mode)
     # valdir = os.path.join(args.data, 'val')
     
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225]
-                                    )
-
-    train_dataset = datasets.ImageFolder( traindir, transforms.Compose([
+                                     std=[0.229, 0.224, 0.225])
+    train_dataset = datasets.ImageFolder(traindir, transforms.Compose([
                                                         transforms.RandomResizedCrop(224),
                                                         transforms.RandomHorizontalFlip(),
                                                         transforms.ToTensor(),
-                                                        normalize])
-                                        )
-    
-    # if model_depth == 0 :
-    #     model = models.__dict__['resnet50'](pretrained=True)
-    # else : 
-    #     model = myResnet(num_layers=model_depth, block=Block)
-        
-    # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
-    
+                                                        normalize]))
     return train_dataset
 # end of load_train_objs ft
-
-
 
 def print_once(gpu_id, message):
     if gpu_id == 0:
         print(message)
 #
-
-
-
-
-
-
-
 
 
