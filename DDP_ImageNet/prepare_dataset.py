@@ -7,8 +7,8 @@ from torch.utils.data.distributed import DistributedSampler
 def load_dataset(args):
     transform = transforms.Compose([ # Transforming and augmenting images
         transforms.RandomHorizontalFlip(), # 랜덤 좌우 반전
-        transforms.RandomVerticalFlip(), # 랜덤 상하 반전
-        transforms.ColorJitter(), # 랜덤 색상필터
+        # transforms.RandomVerticalFlip(), # 랜덤 상하 반전
+        # transforms.ColorJitter(), # 랜덤 색상필터
         transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
         transforms.ToTensor(), # Tensor로 변환
         transforms.Normalize((0.485, 0.465, 0.406), (0.229, 0.224, 0.225))

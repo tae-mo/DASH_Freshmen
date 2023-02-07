@@ -51,7 +51,7 @@ def main(rank, world_size, args):
     elif args.model == 'vit':
         from model_layer.ViT import ViT
         print('model: ViT')
-        model = ViT(image_size=args.imgsz, dropout=0.1, emb_dropout=0.1).to(rank)
+        model = ViT(image_size=args.imgsz).to(rank)
     else:
         print('please enter a valid model name(resnet or vit)')
         return None
