@@ -81,6 +81,8 @@ def load_train_objs(mode='train'):
     train_dataset = datasets.ImageFolder(traindir, transforms.Compose([
                                                         transforms.RandomResizedCrop(224),
                                                         transforms.RandomHorizontalFlip(),
+                                                        transforms.RandomVerticalFlip(),
+                                                        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
                                                         transforms.ToTensor(),
                                                         normalize]))
     return train_dataset
