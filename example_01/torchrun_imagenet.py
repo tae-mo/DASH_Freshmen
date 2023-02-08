@@ -84,9 +84,10 @@ class Trainer:
         wandb.watch(self.model)
         self.loss_fn = nn.CrossEntropyLoss().to(self.gpu_id)  #F.cross_entropy()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=10)
+        self.lr_scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=5)
         
         # .../result/proj_name/snapshot_file(.pt)
+        self.result_dir = ""
         self.snapshot_path = self._load_snapshot(self.snapshot_file)
         
     def create_model(self, model_depth) :
@@ -94,7 +95,7 @@ class Trainer:
         if model_depth == 0 :
             self.model = models.__dict__['resnet50'](pretrained=False)
         elif model_depth == 1 :
-            self.model = ViT(depth = 12, drop_p=.5, forward_drop_p=.0, num_heads=8)
+            self.model = ViT(depth = 12, drop_p=.1, forward_drop_p=.0, num_heads=8)
         else :
             self.model = myResnet(num_layers=model_depth, block=Block)
         self.model = self.model.to(self.gpu_id) # "cuda:{}".format(self.gpu_id)) #f"Resuming training from snapshot at Epoch {self.epochs_run}"
@@ -142,7 +143,7 @@ class Trainer:
                         "Val Loss":self.logs[1]['loss'], "Val Acc":self.logs[1]['acc']}
         self.logger.info(log)
         wandb.log(log)
-        with open(self.result_dir+'log_csv.csv','a') as f:
+        with open(self.result_dir+'/log_csv.csv','a') as f:
             w = csv.writer(f)
             if epoch == 0:
                 w.writerow(log.keys())
@@ -208,7 +209,7 @@ class Trainer:
             
             # if epoch % self.save_every == 0: # save_every 마다 검증 시행 
             self._val(current_epoch = epoch)
-            if (self.gpu_id == 0) : self._save_log()
+            if (self.gpu_id == 0) : self._save_log(epoch)
             
             gc.collect()
             torch.cuda.empty_cache()
