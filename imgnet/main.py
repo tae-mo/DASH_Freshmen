@@ -23,8 +23,6 @@ from utils import AverageMeter, Logger, print_args, save_args, load_args, Accura
 def parse_arg():
     parser = argparse.ArgumentParser(description='Imagenet classifictation')
     # config
-    parser.add_argument('--expname', default='resnet', type=str,
-                    help='name of experiment')
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
     parser.add_argument('--is_wandb', type=bool, default=True)
@@ -74,31 +72,6 @@ def cleanup():
 
 def main(args):
     now = datetime.now()
-    if args.is_wandb:
-        wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961')
-        wandb.config.update(args)
-    
-    utils.init_distributed_mode(args)
-    
-    torch.cuda.set_device(args.gpu) # 각 프로세스에 gpu id setting
-    
-    args.batch_size = args.batch_size // torch.cuda.device_count()
-    args.workers = args.workers // torch.cuda.device_count()
-    
-    train_loader, val_loader = ImgNetData(args.gpu, args.world_size, args)
-    if args.model == 'resnet50':
-        model = ResNet(BottleNeck).to(args.gpu)
-    elif args.model == 'vit':
-        model = ViT().to(args.gpu)
-    model = DDP(model, device_ids=[args.gpu], output_device=args.gpu)
-    
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), weight_decay=args.wd)
-    # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
-    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
-    criterion = nn.CrossEntropyLoss()
-    
-    wandb.watch(model, criterion, log="all", log_freq=10)
-    
     # 옵션1: resume 방법
     if args.resume:
         if os.path.isfile(args.resume):
@@ -113,10 +86,41 @@ def main(args):
             model.load_state_dict((checkpoint['state_dict']))
             optimizer.load_state_dict(checkpoint['optimizer'])
             optimizer.param_groups[0]['capturable'] = True
+            id = checkpoint['wandb_id']
             print("=> loaded checkpoint '{}' (epoch {})"
                     .format(args.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
+    
+    if args.is_wandb:
+        if args.resume:
+            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961', resume='allow', id=id)
+        else:
+            id = wandb.util.generate_id()
+            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961')
+        wandb.config.update(args)
+    
+    utils.init_distributed_mode(args)
+    
+    torch.cuda.set_device(args.gpu) # 각 프로세스에 gpu id setting
+    
+    args.batch_size = args.batch_size // torch.cuda.device_count()
+    args.workers = args.workers // torch.cuda.device_count()
+    
+    train_loader, val_loader = ImgNetData(args.gpu, args.world_size, args)
+    if args.model == 'resnet50':
+        model = ResNet(BottleNeck).to(args.gpu)
+        model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    elif args.model == 'vit':
+        model = ViT().to(args.gpu)
+    model = DDP(model, device_ids=[args.gpu], output_device=args.gpu)
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), weight_decay=args.wd)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
+    criterion = nn.CrossEntropyLoss()
+    
+    wandb.watch(model, criterion, log="all", log_freq=10)
             
     if args.evaluate: # eval mode
         validate(val_loader, model, criterion, args)
@@ -138,8 +142,9 @@ def main(args):
         best_acc1 = max(top1_acc, best_acc1)
         best_loss = min(val_loss, best_loss)
         
-        wandb.log({"train loss": train_loss, "train acc": train_acc, "val loss": val_loss,
-               "val_acc": top1_acc})
+        if args.gpu == 0:
+            wandb.log({"train loss": train_loss, "train acc": train_acc, "val loss": val_loss,
+                "val_acc": top1_acc, "epoch": epoch})
         
         if args.gpu == 0 and epoch % args.save_every == 0:
             save_checkpoint({
@@ -149,7 +154,8 @@ def main(args):
                 'best_acc1': best_acc1,
                 'best_loss': best_loss,
                 'optimizer' : optimizer.state_dict(),
-                'scheduler' : scheduler.state_dict()
+                'scheduler' : scheduler.state_dict(),
+                'wandb_id': id
             }, is_best, args=args)
             print("checkpoint is saved!!")
         scheduler.step()
@@ -158,13 +164,13 @@ def main(args):
     cleanup()
         
 def save_checkpoint(state, is_best, args, filename='checkpoint.pth.tar'):
-    directory = "runs/%s/" % (args.expname)
+    directory = "runs/%s/" % (args.model)
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = directory + filename
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'runs/%s/' % (args.expname) + 'model_best.pth.tar')
+        shutil.copyfile(filename, 'runs/%s/' % (args.model) + 'model_best.pth.tar')
     save_args(args, os.path.join(directory, 'argument.json'))
 
 if __name__ == "__main__":
