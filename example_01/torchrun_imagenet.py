@@ -80,7 +80,10 @@ class Trainer:
         self.create_model(model_depth)
 
         # Initializes internal Module state, shared by both nn.Module and ScriptModule.
+        self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
         self.model = DDP(self.model, device_ids=[self.gpu_id], output_device=torch.cuda.current_device()) 
+        self.model_without_ddp = self.model.module
+        
         wandb.watch(self.model)
         self.loss_fn = nn.CrossEntropyLoss().to(self.gpu_id)  #F.cross_entropy()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
@@ -102,7 +105,7 @@ class Trainer:
         self.model.eval()
         
     def _load_snapshot(self, snapshot_file): # snapshot.pt
-        loc = f"cuda:{self.gpu_id}"
+        loc = {'cuda:%d' % 0: 'cuda:%d' % self.gpu_id} # https://pytorch.org/tutorials/intermediate/ddp_tutorial.html
         dir = os.path.realpath(__file__)
         current_file_path = os.path.abspath(os.path.join(dir, os.pardir))
         _, self.result_dir = make_sure_dir(os.path.join(current_file_path, "result"))
@@ -156,8 +159,8 @@ class Trainer:
         self.optimizer.zero_grad()
         
         output = self.model(source)
-        loss = F.cross_entropy(output, targets)
-        acc = Accuracy(output, targets)
+        loss = F.cross_entropy(output, targets) # .to(self.gpuid)
+        acc = Accuracy(output, targets) # .to(self.gpuid)
         
         self.losses.update(val=loss.item(), batch_sz=source.size(0))
         self.acces.update(val=acc, batch_sz=source.size(0))
@@ -183,7 +186,7 @@ class Trainer:
         self.dataloader.sampler.set_epoch(epoch)            # for suffle data between gpus
         
         tq = tqdm.tqdm(total=(len(self.dataloader) * batch_size))
-        tq.set_description(f'>> {mode} epoch {epoch}')
+        tq.set_description(f'>> {self.gpu_id} {mode} epoch {epoch}')
         for _, (source, targets) in enumerate(self.dataloader): # for source, targets in self.dataloader:
             source, targets = source.to(self.gpu_id), targets.to(self.gpu_id)
             self._run_batch(source, targets, mode=mode) 
