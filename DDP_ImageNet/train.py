@@ -47,7 +47,7 @@ def validate(model, val_loader, criterion, rank, args):
             out = model(data) # 모델에 데이터 넣기
             loss = criterion(out, label) # loss 함수로 입력과 라벨의 loss 구하기
             
-            val_acc += (out.detach().argmax(-1) == label).float().sum() / args.batch_size # val accuracy
+            val_acc += (out.detach().argmax(-1) == label).float().sum() / len(data) # val accuracy
             val_loss += loss # val loss
             
         return val_acc / len(val_loader), val_loss / len(val_loader) # val loss 및 val acc 리턴

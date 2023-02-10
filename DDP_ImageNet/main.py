@@ -18,6 +18,7 @@ def parse_args():
     ## Config
     parser.add_argument("--exp", type=str, default="./model_checkpoint") # checkpoint를 저장할 경로
     parser.add_argument("--model", type=str, default="resnet")
+    parser.add_argument("--data", type=str, default="imagenet")
     
     ## Training
     parser.add_argument("--lr", type=float, default=1e-4) # 학습률
