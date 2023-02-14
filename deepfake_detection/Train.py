@@ -25,15 +25,16 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         
         acc1 = Accuracy(output.data, target, topk=(1,)) # size 1 tensor list
         losses.update(loss.item(), input.size(0))
-        accuracy.update(acc1[0], input.size(0))
+        accuracy.update(acc1[0].item(), input.size(0))
         
-        if 1 & args.print_freq == 0:
-            print('Epoch: [{0}/{1}][{2}/{3}]\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Top 1-acc {top1.val[0]:.4f} ({top1.avg[0]:.4f})'.format(
-                epoch, args.epochs, i, len(train_loader), loss=losses, top1=accuracy))
+        if args.local_rank == 0:
+            if 1 & args.print_freq == 0:
+                print('Epoch: [{0}/{1}][{2}/{3}]\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Top 1-acc {top1.val:.4f} ({top1.avg:.4f})'.format(
+                    epoch, args.epochs, i, len(train_loader), loss=losses, top1=accuracy))
             
-    print('* Epoch: [{0}/{1}]\t Train Accuracy: {top1.avg[0]:.3f} Train Loss: {loss.avg:.3f}'.format(
+    print('* Epoch: [{0}/{1}]\t Train Accuracy: {top1.avg:.3f} Train Loss: {loss.avg:.3f}'.format(
         epoch, args.epochs, top1=accuracy, loss=losses))
 
     return losses.avg, accuracy.avg
@@ -54,13 +55,14 @@ def validate(val_loader, model, criterion, args):
             
             acc1 = Accuracy(output, target)
             losses.update(loss.item(), input.size(0))
-            accuracy.update(acc1[0], input.size(0))
+            accuracy.update(acc1[0].item(), input.size(0))
 
-            if i % args.print_freq == 0:
-                print('Test (on val set): [{0}/{1}]\t'
-                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                    'Top 1-acc {top1.val[0]:.4f} ({top1.avg[0]:.4f})'.format(
-                    i, len(val_loader), loss=losses, top1=accuracy))
-        print('* Validation Accuracy: {top1.avg[0]:.3f}  Test Loss: {loss.avg:.3f}'.format(
+            if args.local_rank == 0:
+                if 1 & args.print_freq == 0:
+                    print('Test (on val set): [{0}/{1}]\t'
+                        'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                        'Top 1-acc {top1.val:.4f} ({top1.avg:.4f})'.format(
+                        i, len(val_loader), loss=losses, top1=accuracy))
+        print('* Validation Accuracy: {top1.avg:.3f}  Test Loss: {loss.avg:.3f}'.format(
             top1=accuracy, loss=losses))
         return losses.avg, accuracy.avg

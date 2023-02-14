@@ -30,7 +30,7 @@ def build_args():
     parser.add_argument("--optimizer", type=str, default="SGD")
     parser.add_argument("--lr", type=float, default=0.01)
     parser.add_argument("--weight_decay", type=float, default=5e-4)
-    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--epochs", type=int, default=5)
     #### save & load ####
     parser.add_argument("--save_root_dir", type=str, default='/media/data1/sangyong/deepfake_detection/save')
     parser.add_argument("--model_load_path", default=None)
@@ -118,7 +118,7 @@ def main(args, logger):
         
         if args.local_rank == 0:
             if valid_acc > best_acc:
-                logger.write(f"Best accuracy: {best_acc:.4f} -> {valid_acc:.4f}")
+                logger.write(f"Best accuracy: {best_acc:.4f} -> {valid_acc:.4f}\n")
                 best_acc = valid_acc
                 checkpoint_dict = {
                     "model": model.state_dict(),
@@ -129,7 +129,7 @@ def main(args, logger):
                 model_save_path = os.path.join(args.model_save_dir, f"{epoch}_{best_acc}.pth")
                 torch.save(checkpoint_dict, model_save_path)
             logger.write(f"[Epoch-{epoch}]_[Train accuracy-{train_acc}]_"
-                          f"[Train loss-{train_loss:.4f}]_[Valid loss-{valid_loss}]")
+                          f"[Train loss-{train_loss:.4f}]_[Valid acc-{valid_acc}]_[Valid loss-{valid_loss}]\n")
             if valid_loss < best_loss:
                 best_loss = valid_loss
             
@@ -141,7 +141,7 @@ def main(args, logger):
                 wandb.log(wandb_msg)
         logger.write(f"[Best accuracy-{best_acc}]_[Best loss-{best_loss}]")
         scheduler.step()
-        dist.barrier()
+        # dist.barrier()
         
 if __name__ == "__main__":
     args = build_args()

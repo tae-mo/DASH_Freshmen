@@ -20,7 +20,7 @@ class DeepfakeDataset(Dataset):
         self.path = os.path.join(path, data_name)
         if train:
             self.real_path = os.path.join(self.path, 'train/real')
-            self.fake_path = os.path.join(self.path, 'train/rake')
+            self.fake_path = os.path.join(self.path, 'train/fake')
         else:
             self.real_path = os.path.join(self.path, 'test/real')
             self.fake_path = os.path.join(self.path, 'test/fake')
@@ -81,14 +81,14 @@ def get_dataloader(args):
     
     return train_loader, valid_loader, train_sampler
     
-if __name__ == "__main__":
-    import sys
-    sys.path.append("/home/jeonghokim/ICML_2022/src")
-    from main import build_args
-    args = build_args()
-    if args.data_type == "imagenet":
-        import torch.distributed as dist
-        dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.local_rank)
-    train_loader, valid_loader, train_sampler = get_dataloader(args)
-    img, label, _ = next(iter(train_loader))
-    print(img.shape)
+# if __name__ == "__main__":
+#     import sys
+#     sys.path.append("/home/jeonghokim/ICML_2022/src")
+#     from main import build_args
+#     args = build_args()
+#     if args.data_type == "imagenet":
+#         import torch.distributed as dist
+#         dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.local_rank)
+#     train_loader, valid_loader, train_sampler = get_dataloader(args)
+#     img, label, _ = next(iter(train_loader))
+#     print(img.shape)
