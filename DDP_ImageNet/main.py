@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-4) # 학습률
     parser.add_argument("--epochs", type=int, default=100) # 학습 횟수
     parser.add_argument("--batch_size", type=int, default=32) # batch size
-    parser.add_argument("--every", type=int, default=100) # 학습 중간에 loss를 출력할 빈도 수
+    parser.add_argument("--every", type=int, default=-1) # 학습 중간에 loss를 출력할 빈도 수
     parser.add_argument("--step_size", type=int, default=30) # StepLR의 step_size
     parser.add_argument("--gamma", type=float, default=0.1) # StepLR의 gamma
     
@@ -43,16 +43,22 @@ def cleanup():
 def main(rank, world_size, args):
     torch.cuda.set_device(rank) # GPU의 각 프로세스 세팅
     
-    train_loader, val_loader = pre_dset(rank, world_size, args) # 데이터 불러오기 및 전처리
+    train_loader, val_loader, train_len = pre_dset(rank, world_size, args) # 데이터 불러오기 및 전처리
+    
+    if args.data == 'mnist':
+        input_channels = 1
+    else:
+        input_channels = 3
     
     if args.model == 'resnet':
         from model_layer.ResNet import ResNet, Bottleneck
         print('model: ResNet')
-        model = ResNet(Bottleneck, [3,4,6,3]).to(rank) # model 생성자
+        
+        model = ResNet(Bottleneck, [3,4,6,3], channels=input_channels).to(rank) # model 생성자
     elif args.model == 'vit':
         from model_layer.ViT import ViT
         print('model: ViT')
-        model = ViT(image_size=args.imgsz).to(rank)
+        model = ViT(image_size=args.imgsz, channels=input_channels).to(rank)
     else:
         print('please enter a valid model name(resnet or vit)')
         return None
@@ -67,7 +73,7 @@ def main(rank, world_size, args):
     
     for epoch in range(args.epochs):
         train_loader.sampler.set_epoch(epoch) # epoch마다 DistributedSampler에게 현재 epoch을 계속 전달해야 함
-        train_loss, train_acc = train(model, train_loader, criterion, optimizer, rank, epoch, args) # Train
+        train_loss, train_acc = train(model, train_loader, criterion, optimizer, rank, epoch, args, train_len) # Train
     
         val_acc, val_loss = validate(model, val_loader, criterion, rank, args)
         

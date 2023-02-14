@@ -3,7 +3,6 @@ import torchvision.datasets as dset
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-
 def load_imagenet(args):
     transform = transforms.Compose([ # Transforming and augmenting images
         transforms.RandomHorizontalFlip(), # 랜덤 좌우 반전
@@ -16,6 +15,7 @@ def load_imagenet(args):
     # 데이터셋 읽기
     train_data = dset.ImageNet('../../../../media/data1/data/Imagenet', split='train', transform=transform)
     test_data = dset.ImageNet('../../../../media/data1/data/Imagenet', split='val', transform=transform)
+    
     return train_data, test_data
    
     
@@ -26,7 +26,7 @@ def load_cifar10(args):
         # transforms.ColorJitter(), # 랜덤 색상필터
         transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
         transforms.ToTensor(), # Tensor로 변환
-        orms.Normalize((0.485, 0.465, 0.406), (0.229, 0.224, 0.225)), # image net 정규화 값
+        transforms.Normalize((0.485, 0.465, 0.406), (0.229, 0.224, 0.225)), # image net 정규화 값
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.247, 0.243, 0.261)), # Cifar10 정규화 값
     ])
     # 데이터셋 읽기
@@ -44,6 +44,7 @@ def load_mnist(args):
     ])
     train_data = dset.MNIST('../../../../media/data1/kangjun/MNIST', train=True, download=True, transform=transform) # MNIST dataset
     test_data = dset.MNIST('../../../../media/data1/kangjun/MNIST', train=False, download=True, transform=transform) # MNIST dataset
+    
     return train_data, test_data
     
     
@@ -64,7 +65,9 @@ def pre_dset(rank, world_size, args):
         print('올바른 dataset이 아닙니다.')
         return None
     
-    
+    train_len = len(train_set)
+    print("Train data size:", train_len)
+    print("Test data size:", len(test_set))
     
     # DDP로 분산 처리하기 위한 데이터 할당
     train_sampler = DistributedSampler(train_set, # 데이터셋
@@ -86,6 +89,7 @@ def pre_dset(rank, world_size, args):
                               sampler=train_sampler,
                               shuffle=not args.shuffle,  # shuffle옵션의 디폴트는 False이지만 여기서는 유동적으로 변경하였음
                              )
+    
     test_loader = DataLoader(test_set,
                              batch_size=batch_per_gpu,
                              pin_memory=args.pin_memory, # CPU에서 GPU의 VRAM으로 데이터를 로드해주기 위한 CPU의 Pinned memory
@@ -93,5 +97,5 @@ def pre_dset(rank, world_size, args):
                              sampler=test_sampler,
                              shuffle=False
                             )
-
-    return train_loader, test_loader
+    
+    return train_loader, test_loader, train_len

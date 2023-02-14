@@ -153,6 +153,7 @@ class ResNet(nn.Module):
         width_per_group: int = 64, # Width of residual blocks
         replace_stride_with_dilation = None, # stride를 dilation으로 대체할지
         norm_layer = None,
+        channels = 3,
     )-> None: # 지금 생각해보니 init은 웬만하면 리턴을 안했었지
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -170,7 +171,7 @@ class ResNet(nn.Module):
             )
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = nn.Conv2d(1, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False) # input layer
+        self.conv1 = nn.Conv2d(channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False) # input layer
         self.bn1 = norm_layer(self.inplanes) # batch_norm
         self.relu = nn.ReLU(inplace=True) # act_func
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1) # 입력층에서 은닉층으로 가기 전 max_pool
@@ -189,12 +190,12 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0) # bias를 0으로
         
         # 잔차 분기의 마지막 BN을 0으로 초기화 한다는 데.... 몰라서 패스
-#         if zero_init_residual:
-#             for m in self.modules():
-#                 if isinstance(m, Bottleneck) and m.bn3.weight is not None:
-#                     nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
-#                 elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
-#                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
+        if zero_init_residual:
+            for m in self.modules():
+                if isinstance(m, Bottleneck) and m.bn3.weight is not None:
+                    nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
+                elif isinstance(m, BasicBlock) and m.bn2.weight is not None:
+                    nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
     def _make_layer( # 넘겨받은 파라미터에 맞게 레이어 생성
         self,

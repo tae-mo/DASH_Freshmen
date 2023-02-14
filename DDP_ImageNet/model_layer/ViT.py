@@ -98,7 +98,7 @@ class ViT(nn.Module):
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim)) # 클래스 토큰(dim만큼 파라미터를 만듦)
         self.dropout = nn.Dropout(emb_dropout) # dropout layer
         
-        self. transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
         
         self.pool = pool # cls or mean
         self.to_latent = nn.Identity()

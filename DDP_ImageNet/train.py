@@ -2,10 +2,11 @@ import torch
 import time
 from tqdm import tqdm
 
-def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (float, float):
+def train(model, train_loader, criterion, optimizer, rank, epoch, args, train_len) -> (float, float):
     model.train() # 학습을 위한 train mode로 변경
     running_loss, logging_loss, train_acc, logging_acc = 0, 0, 0, 0 # 학습 loss, 로그 출력용 loss, 학습 Accuracy, 로그 출력용 loss,
-    tq = tqdm(total=(len(train_loader) * args.batch_size))
+    # tq = tqdm(total=(len(train_loader) * args.batch_size))
+    tq = tqdm(total=train_len)
     tq.set_description(f'Train Epoch {epoch}')
     for idx, (data, label) in enumerate(train_loader):
         if args.pin_memory: # 고정된 메모리
@@ -21,7 +22,7 @@ def train(model, train_loader, criterion, optimizer, rank, epoch, args) -> (floa
         train_acc += (out.detach().argmax(-1) == label).float().sum() / len(data) # accuracy
         logging_acc += (out.detach().argmax(-1) == label).float().sum() / len(data) # accuracy
         
-        if rank == 0:
+        if rank == 0 and args.every != -1:
             if not idx % args.every: # 정해진 수마다 출력 (나눈 값의 나머지가 0이면 출력됨)
                 print(f"[{idx}/{len(train_loader)}] loss per {args.every}: {logging_loss / args.every}, accuracy per {args.every}: {logging_acc / args.every}")
                 logging_loss = 0
