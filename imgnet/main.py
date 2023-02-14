@@ -72,34 +72,7 @@ def cleanup():
 
 def main(args):
     now = datetime.now()
-    # 옵션1: resume 방법
-    if args.resume:
-        if os.path.isfile(args.resume):
-            print("=> loading checkpoint: '{}'".format(args.resume))
-            if args.gpu is None:
-                checkpoint = torch.load(args.resume)
-            else:
-                # MAP model to be loaded to specific single gpu.
-                loc = 'cuda:{}'.format(args.gpu)
-                checkpoint = torch.load(args.resume, map_location=loc)
-            args.start_epoch = checkpoint['epoch']
-            model.load_state_dict((checkpoint['state_dict']))
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            optimizer.param_groups[0]['capturable'] = True
-            id = checkpoint['wandb_id']
-            print("=> loaded checkpoint '{}' (epoch {})"
-                    .format(args.resume, checkpoint['epoch']))
-        else:
-            print("=> no checkpoint found at '{}'".format(args.resume))
-    
-    if args.is_wandb:
-        if args.resume:
-            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961', resume='allow', id=id)
-        else:
-            id = wandb.util.generate_id()
-            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961')
-        wandb.config.update(args)
-    
+
     utils.init_distributed_mode(args)
     
     torch.cuda.set_device(args.gpu) # 각 프로세스에 gpu id setting
@@ -120,7 +93,36 @@ def main(args):
     scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
     
-    wandb.watch(model, criterion, log="all", log_freq=10)
+    if args.resume:
+        if os.path.isfile(args.resume):
+            print("=> loading checkpoint: '{}'".format(args.resume))
+            if args.gpu is None:
+                checkpoint = torch.load(args.resume)
+            else:
+                # MAP model to be loaded to specific single gpu.
+                loc = 'cuda:{}'.format(args.gpu)
+                checkpoint = torch.load(args.resume, map_location=loc)
+            args.start_epoch = checkpoint['epoch']
+            model.load_state_dict((checkpoint['state_dict']))
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            optimizer.param_groups[0]['capturable'] = True
+            id = checkpoint['wandb_id']
+            print("=> loaded checkpoint '{}' (epoch {})"
+                    .format(args.resume, checkpoint['epoch']))
+        else:
+            print("=> no checkpoint found at '{}'".format(args.resume))
+    
+    # 옵션1: resume 방법
+    if args.is_wandb:
+        if args.resume:
+            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961', resume='allow', id=id)
+        else:
+            id = wandb.util.generate_id()
+            wandb.init(project="ImageNet", name=args.model, notes=' runed at ' + now.strftime('%Y-%m-%d %H:%M'), entity='sang8961')
+        wandb.config.update(args)
+    
+    if args.gpu == 0:
+        wandb.watch(model, criterion, log="all", log_freq=10)
             
     if args.evaluate: # eval mode
         validate(val_loader, model, criterion, args)

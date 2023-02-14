@@ -7,3 +7,13 @@ ddp_test.py
 DDP_TEST.py
 
 *.pyc
+
+runs/
+oldmain.py
+
+wandb/
+
+data/cifar-10-batches-py/
+*.gz
+data/
+!data.py
