@@ -81,14 +81,11 @@ def get_dataloader(args):
     
     return train_loader, valid_loader, train_sampler
     
-# if __name__ == "__main__":
-#     import sys
-#     sys.path.append("/home/jeonghokim/ICML_2022/src")
-#     from main import build_args
-#     args = build_args()
-#     if args.data_type == "imagenet":
-#         import torch.distributed as dist
-#         dist.init_process_group(backend=args.dist_backend, world_size=args.world_size, rank=args.local_rank)
-#     train_loader, valid_loader, train_sampler = get_dataloader(args)
-#     img, label, _ = next(iter(train_loader))
-#     print(img.shape)
+if __name__ == "__main__":
+    import sys
+    sys.path.append("/media/data1/sangyong/df_datasets")
+    from main import build_args
+    args = build_args()
+    train_loader, valid_loader, train_sampler = get_dataloader(args)
+    img, label = next(iter(train_loader))
+    print(img.shape)

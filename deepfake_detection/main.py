@@ -43,7 +43,8 @@ def build_args():
     
     if args.DDP:
         args.local_rank = int(os.environ["LOCAL_RANK"])
-        args.batch_size = args.batch_size // args.world_size
+        args.world_size = torch.cuda.device_count()
+        args.batch_size = args.batch_size // torch.cuda.device_count()
     else:
         args.local_rank = 0
     args.save_name = f"[data-{args.data_name}]_[bs-{args.batch_size}]_"+\
@@ -64,8 +65,9 @@ def main(args, logger):
     train_loader, valid_loader, train_sampler = get_dataloader(args)
     
     if args.DDP:
+        sync_bn_module = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
         # model backward pass에 연관되지 않은 parameter들을 mark해서 DDP가 해당 파라미터들의 gradient들을 영원히 기다리는 것을 방지 한다. 
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], find_unused_parameters=True) 
+        model = torch.nn.parallel.DistributedDataParallel(sync_bn_module, device_ids=[args.local_rank], find_unused_parameters=True) 
 
     if args.optimizer == "SGD":
         optimizer = torch.optim.SGD(
