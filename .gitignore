@@ -16,3 +16,4 @@ classification/model/transformer.py
 classification/csv_1.py
 CLRNet
 classification/tutorial/result/traintrain.log
+detection/model/__pycache__/xception.cpython-38.pyc

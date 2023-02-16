@@ -38,13 +38,29 @@ class Trainer():
             self.model = XC(num_classes=2)
         
         
-if not os.path.exists(df_dir):
-    print("where")
-else : 
-    print("data found")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    x = torch.randn(3, 3, 299, 299).to(device)
-    model = XC(num_classes=2).to(device)
-    output = model(x)
-    print('output size:', output.size())
+
     
+mode = 'exercise'
+def main():
+    if not os.path.exists(df_dir):
+        print("where")
+    else : 
+        print("data found")
+    
+    if mode == 'exercise':
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        x = torch.randn(3, 3, 299, 299).to(device)
+        model = XC(num_classes=2).to(device)
+        output = model(x)
+        print('output size:', output.size())
+        # print summary
+        summary(model, (3, 299, 299), device=device.type)
+
+
+
+if __name__ == "__main__":
+    # args = parse_args()                 # world_size = 2 if torch.cuda.device_count() > 2 else torch.cuda.device_count()
+    # torch.manual_seed(args.rand_seed)
+    # main(save_every=args.save_every, total_epochs=args.total_epochs, batch_size=args.batch_size, lr=args.lr,
+        #  model_depth=args.depth, model=args.model, scale=args.scale, proj_name=args.name, args=args)
+    main()
