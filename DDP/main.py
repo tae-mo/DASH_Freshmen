@@ -28,8 +28,9 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=100) # 학습 횟수
     parser.add_argument("--batch_size", type=int, default=32) # batch size
     parser.add_argument("--every", type=int, default=-1) # 학습 중간에 loss를 출력할 빈도 수
+    parser.add_argument("--weight_decay", type=float, default=0.0)
     parser.add_argument("--step_size", type=int, default=30) # StepLR의 step_size
-    parser.add_argument("--gamma", type=float, default=0.1) # StepLR의 gamma
+    parser.add_argument("--gamma", type=float, default=1.0) # StepLR의 gamma
     
     ## Data loader
     parser.add_argument("--pin_memory", action='store_true') # 데이터를 CPU -> GPU로 옮길 때 사용할 memory(store_true: 언급 시 True를 저장)
@@ -75,7 +76,7 @@ def main(rank, world_size, args):
         raise NotImplementedError(f'Your input model: {arsgs.model}, please enter a valid model name(resnet, vit, xception)')
     model = DDP(model, device_ids=[rank], output_device=rank) # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate) # 최적화기법 및 learning rate 설정
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) # 최적화기법 및 learning rate 설정
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma) # learning rate를 step_size마다 gamma를 곱하여 감소시킴
     criterion = nn.CrossEntropyLoss()
     
