@@ -93,8 +93,8 @@ def main(rank, world_size, args):
         train_loader.sampler.set_epoch(epoch) # epoch마다 DistributedSampler에게 현재 epoch을 계속 전달해야 함
         train_loss, train_acc = train(model, train_loader, criterion, optimizer, rank, epoch, args, train_len) # Train
         val_acc, val_loss = validate(model, val_loader, criterion, rank, args) # validate
-        
-        wandb.log({"train loss:": train_loss, "train acc": train_acc, "val loss": val_loss, "val acc": val_acc}) # logging to wandb
+        if args.is_wandb:
+            wandb.log({"train loss:": train_loss, "train acc": train_acc, "val loss": val_loss, "val acc": val_acc}) # logging to wandb
     
         ## reason of using ones_like: 
         ## the container's value should be on the same device with the value it will contain
