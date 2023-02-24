@@ -123,7 +123,7 @@ def main(rank, world_size, args):
                     "state_dict": model.module.state_dict(),
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler.state_dict(),
-                }, file_name=os.path.join(args.exp, f"best_loss.path"))
+                }, file_name=os.path.join(args.exp, f"best_loss.pth"))
             save_ckpt({
                 "epoch": epoch+1,
                 "state_dict": model.module.state_dict(),
