@@ -40,8 +40,8 @@ def parse_args():
 
     ## Wandb
     parser.add_argument("--is_wandb", action='store_true')
-    ## parser.add_argument("--project_name", type=str, default="ImageNet") # 나중에 모델명을 더 아름답게 하기 위해 바꾸기
-    parser.add_argument("--entity", type=str, default="classofficer")
+    ## parser.add_argument("--project_name", type=str, default="ImageNet") # 나중에 프로젝트명을 더 아름답게 하기 위해 바꾸기
+    parser.add_argument("--entity", type=str, default="classofficer") # 사용자명 or 팀명
     
     return parser.parse_args() # 입력받은 argument 리턴
 
@@ -73,7 +73,7 @@ def main(rank, world_size, args):
         print('model: Xception')
         model = Xception(num_classes=2, in_chans=3, drop_rate=0).to(rank)
     else:
-        raise NotImplementedError(f'Your input model: {arsgs.model}, please enter a valid model name(resnet, vit, xception)')
+        raise NotImplementedError(f'Your input model: {args.model}, please enter a valid model name(resnet, vit, xception)')
     model = DDP(model, device_ids=[rank], output_device=rank) # 병렬 처리를 위해 DDP에 model, process id를 넘겨줌   
     
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay) # 최적화기법 및 learning rate 설정
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     dist.init_process_group("nccl")
     
     if "./model_checkpoint" not in args.exp: # 입력 받은 경로에 해당 폴더가 없으면
-        args.exp = os.path.join("./model_checkpoint", args.exp) # 경로를 이어붙임
+        args.exp = os.path.join("/media/data1/kangjun/model_checkpoint", args.exp) # 경로를 이어붙임
     os.makedirs(args.exp, exist_ok=True) # exist_ok=True: 폴더가 없으면 자동 생성
     
     main(rank=args.local_rank, world_size=dist.get_world_size(), args=args) # main에 GPU의 process ID, process 수 및 args를 넘겨줌

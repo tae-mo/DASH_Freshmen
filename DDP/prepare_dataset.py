@@ -54,13 +54,14 @@ class LoadDeepFake(Dataset):
 def load_imagenet(args):
     transform_train = transforms.Compose([ # Transforming and augmenting images
         transforms.RandomHorizontalFlip(), # 랜덤 좌우 반전
-        # transforms.RandomVerticalFlip(), # 랜덤 상하 반전
-        # transforms.ColorJitter(), # 랜덤 색상필터
+        transforms.RandomVerticalFlip(), # 랜덤 상하 반전
+        transforms.ColorJitter(), # 랜덤 색상필터
         transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
         transforms.ToTensor(), # Tensor로 변환
         transforms.Normalize((0.485, 0.465, 0.406), (0.229, 0.224, 0.225)), # image net 정규화 값
     ])
     transform_test = transforms.Compose([ # Transforming and augmenting images
+        transforms.CenterCrop(args.imgsz),
         transforms.ToTensor(), # Tensor로 변환
         transforms.Normalize((0.485, 0.465, 0.406), (0.229, 0.224, 0.225)), # image net 정규화 값
     ])
@@ -73,7 +74,7 @@ def load_imagenet(args):
 def load_cifar10():
     transform_train = transforms.Compose([ # Transforming and augmenting images
         transforms.RandomHorizontalFlip(), # 랜덤 좌우 반전
-        # transforms.RandomVerticalFlip(), # 랜덤 상하 반전
+        transforms.RandomVerticalFlip(), # 랜덤 상하 반전
         # transforms.ColorJitter(), # 랜덤 색상필터
         # transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
         transforms.ToTensor(), # Tensor로 변환
@@ -88,11 +89,11 @@ def load_cifar10():
     test_data = dset.CIFAR10('/media/data1/kangjun/Cifar10', train=False, download=True, transform=transform_test) # Cifar10 dataset
     return train_data, test_data
     
-def load_mnist(args):
+def load_mnist():
     transform_train = transforms.Compose([ # Transforming and augmenting images
         # transforms.RandomVerticalFlip(), # 랜덤 상하 반전
         # transforms.ColorJitter(), # 랜덤 색상필터
-        transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
+        # transforms.RandomResizedCrop((args.imgsz, args.imgsz)), # 랜덤으로 리사이즈 후, cropping
         transforms.ToTensor(), # Tensor로 변환
         transforms.Normalize((0.1307,), (0.3081,)) # MNIST 정규화 값
     ])
@@ -120,13 +121,14 @@ def pre_dset(rank, world_size, args):
     elif args.data == "cifar10":
         train_set, test_set = load_cifar10()
     elif args.data == "mnist":
-        train_set, test_set = load_mnist(args)
+        train_set, test_set = load_mnist()
     elif args.data in deepfake_dataset:
         train_set = LoadDeepFake(data_path=args.data+'/train', img_size=args.imgsz)        
         test_set = LoadDeepFake(data_path=args.data+'/test', img_size=args.imgsz)        
     else:
         print('올바른 dataset이 아닙니다.')
         return None
+    print("Data:", args.data)
     
     train_len = len(train_set)
     print("Train data size:", train_len)
@@ -143,6 +145,7 @@ def pre_dset(rank, world_size, args):
                                       rank=rank, # process ID
                                       shuffle=False, # Test set은 섞을 필요 없음
                                      )
+    print('DDP shuffle:', args.shuffle)
     
     # DataLoader
     train_loader = DataLoader(train_set, # 데이터 셋
@@ -152,6 +155,7 @@ def pre_dset(rank, world_size, args):
                               sampler=train_sampler,
                               shuffle=not args.shuffle,  # shuffle옵션의 디폴트는 False이지만 여기서는 유동적으로 변경하였음
                              )
+    print('DataLoader shuffle:', (not args.shuffle))
     
     test_loader = DataLoader(test_set,
                              batch_size=batch_per_gpu,
