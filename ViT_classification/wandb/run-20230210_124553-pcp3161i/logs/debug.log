@@ -1,0 +1,25 @@
+2023-02-10 12:45:53,816 INFO    MainThread:3255 [wandb_setup.py:_flush():68] Configure stats pid to 3255
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_setup.py:_flush():68] Loading settings from /home/syon1203/.config/wandb/settings
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_setup.py:_flush():68] Loading settings from /home/syon1203/DASH_Freshmen/ViT_classification/wandb/settings
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_setup.py:_flush():68] Loading settings from environment variables: {'_require_service': 'True'}
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_setup.py:_flush():68] Inferring run settings from compute environment: {'program_relpath': 'ViT_classification/main___.py', 'program': 'main___.py'}
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_init.py:_log_setup():478] Logging user logs to /home/syon1203/DASH_Freshmen/ViT_classification/wandb/run-20230210_124553-pcp3161i/logs/debug.log
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_init.py:_log_setup():479] Logging internal logs to /home/syon1203/DASH_Freshmen/ViT_classification/wandb/run-20230210_124553-pcp3161i/logs/debug-internal.log
+2023-02-10 12:45:53,817 INFO    MainThread:3255 [wandb_init.py:init():518] calling init triggers
+2023-02-10 12:45:53,818 INFO    MainThread:3255 [wandb_init.py:init():521] wandb.init called with sweep_config: {}
+config: {}
+2023-02-10 12:45:53,818 INFO    MainThread:3255 [wandb_init.py:init():571] starting backend
+2023-02-10 12:45:53,818 INFO    MainThread:3255 [wandb_init.py:init():575] setting up manager
+2023-02-10 12:45:53,826 INFO    MainThread:3255 [backend.py:_multiprocessing_setup():106] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2023-02-10 12:45:53,831 INFO    MainThread:3255 [wandb_init.py:init():582] backend started and connected
+2023-02-10 12:45:53,838 INFO    MainThread:3255 [wandb_init.py:init():670] updated telemetry
+2023-02-10 12:45:53,877 INFO    MainThread:3255 [wandb_init.py:init():710] communicating run to backend with 60.0 second timeout
+2023-02-10 12:45:54,401 INFO    MainThread:3255 [wandb_run.py:_on_init():2121] communicating current version
+2023-02-10 12:45:54,471 INFO    MainThread:3255 [wandb_run.py:_on_init():2125] got version response upgrade_message: "wandb version 0.13.10 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2023-02-10 12:45:54,472 INFO    MainThread:3255 [wandb_init.py:init():758] starting run threads in backend
+2023-02-10 12:45:54,626 INFO    MainThread:3255 [wandb_run.py:_console_start():2101] atexit reg
+2023-02-10 12:45:54,626 INFO    MainThread:3255 [wandb_run.py:_redirect():1959] redirect: SettingsConsole.WRAP_RAW
+2023-02-10 12:45:54,626 INFO    MainThread:3255 [wandb_run.py:_redirect():2024] Wrapping output streams.
+2023-02-10 12:45:54,627 INFO    MainThread:3255 [wandb_run.py:_redirect():2046] Redirects installed.
+2023-02-10 12:45:54,629 INFO    MainThread:3255 [wandb_init.py:init():798] run started, returning control to user process

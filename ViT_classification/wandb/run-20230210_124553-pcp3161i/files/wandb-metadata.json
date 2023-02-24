@@ -1,0 +1,257 @@
+{
+    "os": "Linux-4.15.0-188-generic-x86_64-with-glibc2.17",
+    "python": "3.8.16",
+    "heartbeatAt": "2023-02-10T03:45:54.541370",
+    "startedAt": "2023-02-10T03:45:53.810930",
+    "docker": null,
+    "cuda": "11.0.207",
+    "args": [],
+    "state": "running",
+    "program": "main___.py",
+    "codePath": "ViT_classification/main___.py",
+    "git": {
+        "remote": "https://github.com/tae-mo/DASH_Freshmen.git",
+        "commit": "46e7dd5c5224dc39cd47e45bb610a4f17beab263"
+    },
+    "email": "syon1203@me.com",
+    "root": "/home/syon1203/DASH_Freshmen",
+    "host": "dash1",
+    "username": "syon1203",
+    "executable": "/home/syon1203/anaconda3/envs/classification/bin/python",
+    "cpu_count": 20,
+    "cpu_count_logical": 40,
+    "cpu_freq": {
+        "current": 1308.4997749999998,
+        "min": 800.0,
+        "max": 3000.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 800.061,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2774.161,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1613.645,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 801.002,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.946,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.296,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.626,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2583.627,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.45,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.313,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1482.288,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 834.025,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2525.148,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 853.274,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.049,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2241.555,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2583.111,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 999.543,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1315.401,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.491,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 801.03,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2311.199,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1562.668,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.101,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.243,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.686,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.373,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2804.204,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.067,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.414,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1761.952,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 894.189,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2581.226,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 828.098,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.279,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2216.154,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 2503.779,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 807.554,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 1417.645,
+            "min": 800.0,
+            "max": 3000.0
+        },
+        {
+            "current": 800.006,
+            "min": 800.0,
+            "max": 3000.0
+        }
+    ],
+    "disk": {
+        "total": 1797.337631225586,
+        "used": 1546.505111694336
+    },
+    "gpu": "NVIDIA TITAN RTX",
+    "gpu_count": 4,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA TITAN RTX",
+            "memory_total": 25396838400
+        },
+        {
+            "name": "NVIDIA TITAN RTX",
+            "memory_total": 25396838400
+        },
+        {
+            "name": "NVIDIA TITAN RTX",
+            "memory_total": 25396838400
+        },
+        {
+            "name": "NVIDIA TITAN RTX",
+            "memory_total": 25396838400
+        }
+    ],
+    "memory": {
+        "total": 251.55563735961914
+    }
+}

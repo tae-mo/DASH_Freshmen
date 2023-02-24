@@ -36,7 +36,6 @@ parser.add_argument('--lr', '-l', required=False, default=1e-4, help='Learning R
 parser.add_argument('--num_workers', '-w', required=False, default=8, help='Workers')
 parser.add_argument('--load_model', '-lm', required=False, default=False, help='Load model')
 
-
 def main(rank, batch_size: int, world_size):
 
     torch.cuda.set_device(rank) # set gpu id for each process
