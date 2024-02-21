@@ -30,4 +30,5 @@ CUDA_VISIBLE_DEVICES=2,3 torchrun --nproc_per_node 2 main.py --exp './Xception' 
 ```
 
 ### NOTE:
-PUSH IN YOUR OWN BRANCH (not main branch)
+1. BZNet: Dash-9 /media/data1/sangyup/BZNet-main.zip
+2. PUSH IN YOUR OWN BRANCH (not main branch)
